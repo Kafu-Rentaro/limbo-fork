@@ -18,6 +18,7 @@
 - compileSdk/targetSdk 36、minSdk 23 に更新した。
 - 各アーキテクチャの entry Activity、`ArchDefinitions`、`MachineProperty`、`MachineAction` を Kotlin 化した。
 - `LimboApplication` を Kotlin 化し、既存 Java 呼び出しとの static API 互換を維持した。
+- Help dialog を Kotlin 化し、Material dialog builder で host capability summary を表示するようにした。
 - Material 3 Expressive theme を導入した。
 - Jetpack WindowManager と hinge angle sensor による foldable posture 検出を SDL 画面に接続した。
 - SDL 表示領域と touch-control 領域を posture/orientation に応じて自動配分する `AdaptiveVmLayout` を追加した。
