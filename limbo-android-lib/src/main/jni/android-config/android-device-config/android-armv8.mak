@@ -18,8 +18,11 @@ endif
 APP_ABI = arm64-v8a
 ARM_MODE=arm
 
-ARCH_CFLAGS += -march=armv8-a
+ifeq ($(USE_ARMV9),true)
+    ARCH_CFLAGS += -march=armv9-a
+else
+    ARCH_CFLAGS += -march=armv8-a
+endif
 
 # Tuning (Optional)
 #ARCH_CFLAGS += -mtune=arm8
-

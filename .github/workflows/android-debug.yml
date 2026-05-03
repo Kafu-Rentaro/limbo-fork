@@ -1,0 +1,52 @@
+name: Android Debug
+
+'on':
+  push:
+    branches:
+      - master
+      - main
+      - 'codex/**'
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: android-debug-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  debug:
+    name: Lint and debug APKs
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out sources
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android platform
+        run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
+
+      - name: Make Gradle executable
+        run: chmod +x ./gradlew
+
+      - name: Check shell helpers
+        run: bash -n tools/fetch-qemu-11.sh tools/configure-qemu-11-android.sh
+
+      - name: Run lint and debug builds
+        run: >
+          ./gradlew
+          :limbo-android-x86:lintDebug
+          :limbo-android-x86:assembleDebug
+          :limbo-android-arm:assembleDebug
+          :limbo-android-ppc:assembleDebug
+          :limbo-android-sparc:assembleDebug

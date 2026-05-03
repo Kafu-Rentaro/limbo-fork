@@ -83,6 +83,7 @@
     <string name="save_as_copy">Save as Copy</string>
     <string name="scaling">Scaling</string>
     <string name="save_state">Pause VM</string>
+    <string name="save_snapshot">Save Snapshot</string>
     <string name="scaling_zoomable">Zoomable</string>
     <string name="send_button">Send</string>
     <string name="send_key_again">Send Key Again</string>
@@ -265,6 +266,7 @@
     <string name="MachineResolution">Machine resolution</string>
     <string name="Warning">Warning</string>
     <string name="MachineResoultionWarning">Machine Resolution is too high for Desktop Mode. Scaling will be used and Mouse Alignment will not be accurate. Reduce display resolution within the Guest OS for better experience.\n\n</string>
+    <string name="virgl_requires_sdl">3D acceleration uses SDL display. Limbo will switch to SDL when available.</string>
     <string name="CouldNotCreateBaseDir">Could not create base directory</string>
     <string name="CouldNotCreateMachineDir">Could not create machine directory</string>
     <string name="CouldNotCreateDirForImage">Could not create directory for image</string>
@@ -372,4 +374,7 @@
     <string name="IgnoreBreakpointInvalidationSummary">Ignore Breakpoint Invalidation</string>
     <string name="ImportBIOSFile">Import BIOS</string>
     <string name="importBIOSInstructions">Select a BIOS file (bin, rom, etc..) to import.</string>
+    <string name="guest_profile">Guest OS Profile</string>
+    <string name="guest_profile_applied">Applied profile: %1$s</string>
+    <string name="guest_profile_x86_only">Windows guest profiles are available in the x86 emulator.</string>
 </resources>

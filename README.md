@@ -11,3 +11,8 @@ Limbo is a QEMU-based emulator for Android supports emulation for these architec
 
 For developers read file README.developers for instructions on how to compile on your own
 	and other useful information.
+
+For the planned QEMU 11.0.0, Kotlin, Material 3 Expressive, foldable, full keyboard,
+and 3D acceleration modernization work, see:
+
+	docs/modernization-roadmap-ja.md

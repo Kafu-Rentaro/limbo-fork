@@ -7,6 +7,8 @@ ifeq ($(USE_QEMU_VERSION),2.9.1)
 include $(QEMU_CONFIG_DIR)/android-qemu-config-2.9.1.mak
 else ifeq ($(USE_QEMU_VERSION),5.1.0)
 include $(QEMU_CONFIG_DIR)/android-qemu-config-5.1.0.mak
+else ifeq ($(USE_QEMU_VERSION),11.0.0)
+include $(QEMU_CONFIG_DIR)/android-qemu-config-11.0.0.mak
 else
 $(error Unsupported QEMU version = $(USE_QEMU_VERSION))
 endif
@@ -113,7 +115,11 @@ MISC += --disable-attr --disable-guest-agent --disable-pie
 MISC += --disable-rbd --disable-xfsctl  --disable-lzo  --disable-snappy 
 MISC += --disable-seccomp --disable-bzip2 --disable-glusterfs 
 MISC += --disable-vte
-MISC += --disable-opengl
+ifeq ($(USE_VIRGL),true)
+	MISC += --enable-opengl --enable-virglrenderer
+else
+	MISC += --disable-opengl --disable-virglrenderer
+endif
 MISC += --disable-blobs
 MISC += --disable-werror
 MISC += --disable-gnutls
@@ -260,4 +266,3 @@ config:
 	--with-coroutine=$(COROUTINE) \
 	$(DEBUG) \
 	$(CONFIG_PROFILER)
-

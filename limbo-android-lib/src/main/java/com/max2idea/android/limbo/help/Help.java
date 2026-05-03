@@ -32,6 +32,7 @@ import android.widget.TextView;
 
 import com.limbo.emu.lib.R;
 import com.max2idea.android.limbo.main.Config;
+import com.max2idea.android.limbo.main.HostCapabilities;
 import com.max2idea.android.limbo.main.LimboApplication;
 import com.max2idea.android.limbo.main.LimboSettingsManager;
 import com.max2idea.android.limbo.network.NetworkUtils;
@@ -49,7 +50,8 @@ public class Help {
         mLayout.setOrientation(LinearLayout.VERTICAL);
         TextView textView = new TextView(activity);
         textView.setTextSize(15);
-        textView.setText(activity.getResources().getString(R.string.welcomeText));
+        textView.setText(activity.getResources().getString(R.string.welcomeText)
+                + "\n\n" + HostCapabilities.getSummary());
         textView.setPadding(20, 20, 20, 20);
         ScrollView scrollView = new ScrollView(activity);
         scrollView.setLayoutParams(new LinearLayout.LayoutParams(

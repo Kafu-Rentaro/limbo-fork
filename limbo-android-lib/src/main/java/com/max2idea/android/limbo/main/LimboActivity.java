@@ -18,12 +18,14 @@
  */
 package com.max2idea.android.limbo.main;
 
+import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.NotificationManager;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.graphics.Point;
 import android.os.Build;
@@ -111,6 +113,8 @@ public class LimboActivity extends AppCompatActivity
     private static final int SETTINGS = 13;
     private static final int TOOLS = 14;
     private static final int IMPORT_BIOS_FILE = 15;
+    private static final int POST_NOTIFICATIONS_REQUEST = 16;
+    private static final int GUEST_PROFILE = 17;
 
     // disk mapping
     private static final Hashtable<FileType, DiskInfo> diskMapping = new Hashtable<>();
@@ -361,7 +365,14 @@ public class LimboActivity extends AppCompatActivity
                 if (getMachine() == null)
                     return;
                 String ui = (String) ((ArrayAdapter<?>) mUI.getAdapter()).getItem(position);
+                if ("VNC".equals(ui) && isVirglGpu(getSelectedVga()) && Config.enable_SDL) {
+                    enforceSDLForVirgl();
+                    return;
+                }
                 notifyFieldChange(MachineProperty.UI, ui);
+                if ("VNC".equals(ui) && isVirglGpu(getSelectedVga())) {
+                    ToastUtils.toastShort(LimboActivity.this, getString(R.string.virgl_requires_sdl));
+                }
             }
 
             public void onNothingSelected(AdapterView<?> parentView) {
@@ -504,6 +515,9 @@ public class LimboActivity extends AppCompatActivity
                     return;
                 String vgacfg = (String) ((ArrayAdapter<?>) mVGAConfig.getAdapter()).getItem(position);
                 notifyFieldChange(MachineProperty.VGA, vgacfg);
+                if (isVirglGpu(vgacfg)) {
+                    enforceSDLForVirgl();
+                }
             }
 
             public void onNothingSelected(AdapterView<?> parentView) {
@@ -948,12 +962,24 @@ public class LimboActivity extends AppCompatActivity
         populateAttributesUI();
         checkFirstLaunch();
         setupToolbar();
+        requestNotificationPermissionIfNeeded();
         checkUpdate();
         checkLog();
         checkAndLoadLibs();
         restore();
         setupListeners();
         addGenericOperatingSystems();
+    }
+
+    private void requestNotificationPermissionIfNeeded() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+                && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
+                != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(
+                    new String[]{Manifest.permission.POST_NOTIFICATIONS},
+                    POST_NOTIFICATIONS_REQUEST
+            );
+        }
     }
 
     private void setupAppEnvironment() {
@@ -2483,6 +2509,29 @@ public class LimboActivity extends AppCompatActivity
         mVGAConfig.invalidate();
     }
 
+    private String getSelectedVga() {
+        if (mVGAConfig == null || mVGAConfig.getSelectedItem() == null) {
+            return null;
+        }
+        return (String) mVGAConfig.getSelectedItem();
+    }
+
+    private boolean isVirglGpu(String vga) {
+        return vga != null && (vga.contains("virgl=on") || vga.endsWith("-gl"));
+    }
+
+    private void enforceSDLForVirgl() {
+        if (!Config.enable_SDL) {
+            ToastUtils.toastShort(this, getString(R.string.virgl_requires_sdl));
+            return;
+        }
+        if (mUI != null && mUI.getSelectedItem() != null && !"SDL".equals(mUI.getSelectedItem())) {
+            SpinnerAdapter.setDiskAdapterValue(mUI, "SDL");
+            notifyFieldChange(MachineProperty.UI, "SDL");
+            ToastUtils.toastShort(this, getString(R.string.virgl_requires_sdl));
+        }
+    }
+
     private void populateKeyboardLayout() {
         ArrayList<String> arrList = ArchDefinitions.getKeyboardValues(this);
         ArrayAdapter<String> keyboardAdapter = new ArrayAdapter<>(this, R.layout.custom_spinner_item, arrList);
@@ -2633,6 +2682,8 @@ public class LimboActivity extends AppCompatActivity
                 menu.add(0, DISCARD_VM_STATE, 0, R.string.DiscardSavedState).setIcon(R.drawable.close);
             menu.add(0, EXPORT, 0, R.string.ExportMachines).setIcon(R.drawable.exportvms);
             menu.add(0, IMPORT, 0, R.string.ImportMachines).setIcon(R.drawable.importvms);
+            if (getMachine() != null)
+                menu.add(0, GUEST_PROFILE, 0, R.string.guest_profile).setIcon(R.drawable.advanced);
         }
         menu.add(0, IMPORT_BIOS_FILE, 0, R.string.ImportBIOSFile).setIcon(R.drawable.importvms);
         menu.add(0, SETTINGS, 0, R.string.Settings).setIcon(R.drawable.settings);
@@ -2671,6 +2722,8 @@ public class LimboActivity extends AppCompatActivity
             MachineImporter.promptImportMachines(this);
         } else if (item.getItemId() == IMPORT_BIOS_FILE) {
             BIOSImporter.promptImportBIOSFile(this);
+        } else if (item.getItemId() == GUEST_PROFILE) {
+            GuestOsProfileManager.promptApply(this, getMachine(), viewListener);
         } else if (item.getItemId() == HELP) {
             Help.showHelp(this);
         } else if (item.getItemId() == VIEWLOG) {

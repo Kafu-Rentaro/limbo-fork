@@ -52,6 +52,9 @@ import java.util.Arrays;
  */
 class VMExecutor extends MachineExecutor {
     private static final String TAG = "VMExecutor";
+    private static final String AUDIO_DEVICE_ID = "limbo-audio0";
+    private static final String NETDEV_ID = "limbo-net0";
+    private static final String SCSI_CONTROLLER_ID = "limbo-scsi0";
 
     private static final String cdDeviceName = "ide1-cd0";
     private static final String fdaDeviceName = "floppy0";
@@ -247,10 +250,33 @@ private String getQemuLibrary() {
     }
 
     private void addAudioOptions(ArrayList<String> paramsList) {
-        if (getSoundCard() != null) {
-            paramsList.add("-soundhw");
-            paramsList.add(getSoundCard());
+        String soundCard = getSoundCard();
+        if (soundCard == null) {
+            return;
         }
+        if (!usesModernAudioOptions()) {
+            paramsList.add("-soundhw");
+            paramsList.add(soundCard);
+            return;
+        }
+        if ("pcspk".equals(soundCard)) {
+            paramsList.add("-audiodev");
+            paramsList.add("driver=sdl,id=" + AUDIO_DEVICE_ID);
+            return;
+        }
+        paramsList.add("-audio");
+        paramsList.add("driver=sdl,model=" + getAudioModel(soundCard) + ",id=" + AUDIO_DEVICE_ID);
+    }
+
+    private String getAudioModel(String soundCard) {
+        if ("all".equals(soundCard)) {
+            return "hda";
+        }
+        return soundCard;
+    }
+
+    private boolean usesModernAudioOptions() {
+        return LimboApplication.getQemuVersion() >= 70100;
     }
 
     private void addGenericOptions(Context context, ArrayList<String> paramsList) {
@@ -312,9 +338,10 @@ private String getQemuLibrary() {
             paramsList.add("-smp");
             paramsList.add(getMachine().getCpuNum() + "");
         }
-        if (getMachineType() != null && !getMachineType().equals("Default")) {
+        String machineType = getMachineTypeWithRuntimeProperties();
+        if (machineType != null && !"Default".equals(machineType)) {
             paramsList.add("-M");
-            paramsList.add(getMachineType());
+            paramsList.add(machineType);
         }
 
         //FIXME: something is wrong with quoting that doesn't let sparc qemu find the cpu def
@@ -335,11 +362,8 @@ private String getQemuLibrary() {
             cpu += ",-tsc";
         }
 
-        if (getMachine().getDisableAcpi() != 0) {
-            paramsList.add("-no-acpi"); //disable ACPI
-        }
-        if (getMachine().getDisableHPET() != 0) {
-            paramsList.add("-no-hpet"); //        disable HPET
+        if (!usesMachineRuntimeProperties()) {
+            addLegacyMachineToggles(paramsList);
         }
 
         if (cpu != null && !cpu.equals("Default")) {
@@ -377,59 +401,152 @@ private String getQemuLibrary() {
                 && machineType == null) {
             machineType = "pc";
         } else if ((LimboApplication.arch == Config.Arch.ppc || LimboApplication.arch == Config.Arch.ppc64)
-                && machineType.equals("Default")) {
+                && "Default".equals(machineType)) {
             machineType = null;
         } else if ((LimboApplication.arch == Config.Arch.sparc || LimboApplication.arch == Config.Arch.sparc64)
-                && machineType.equals("Default")) {
+                && "Default".equals(machineType)) {
             machineType = null;
         }
         return machineType;
     }
 
+    private String getMachineTypeWithRuntimeProperties() {
+        String machineType = getMachineType();
+        if (!supportsPcMachineProperties(machineType)) {
+            return machineType;
+        }
+        if (usesMachineRuntimeProperties() && getMachine().getDisableAcpi() != 0) {
+            machineType = appendMachineProperty(machineType, "acpi", "off");
+        }
+        if (usesMachineRuntimeProperties() && getMachine().getDisableHPET() != 0) {
+            machineType = appendMachineProperty(machineType, "hpet", "off");
+        }
+        if (usesModernAudioOptions() && "pcspk".equals(getSoundCard())) {
+            machineType = appendMachineProperty(machineType, "pcspk-audiodev", AUDIO_DEVICE_ID);
+        }
+        return machineType;
+    }
+
+    private void addLegacyMachineToggles(ArrayList<String> paramsList) {
+        if (getMachine().getDisableAcpi() != 0) {
+            paramsList.add("-no-acpi");
+        }
+        if (getMachine().getDisableHPET() != 0) {
+            paramsList.add("-no-hpet");
+        }
+    }
+
+    private boolean usesMachineRuntimeProperties() {
+        return LimboApplication.getQemuVersion() >= 90000;
+    }
+
+    private boolean supportsPcMachineProperties(String machineType) {
+        if (LimboApplication.arch == Config.Arch.x86 || LimboApplication.arch == Config.Arch.x86_64) {
+            return true;
+        }
+        return machineType != null && (machineType.startsWith("pc") || machineType.startsWith("q35"));
+    }
+
+    private String appendMachineProperty(String machineType, String property, String value) {
+        if (machineType == null || "Default".equals(machineType)) {
+            machineType = "pc";
+        }
+        if (machineType.contains(property + "=")) {
+            return machineType;
+        }
+        return machineType + "," + property + "=" + value;
+    }
+
     private void addNetworkOptions(ArrayList<String> paramsList) throws Exception {
-
         String network = getNetCfg();
-        if (network != null) {
-            paramsList.add("-net");
-            if (network.equals("user")) {
-                String netParams = network;
-                String hostFwd = getHostFwd();
-                if (hostFwd != null) {
-
-                    //hostfwd=[tcp|udp]:[hostaddr]:hostport-[guestaddr]:guestport{,hostfwd=...}
-                    // example forward ssh from guest port 2222 to guest port 22:
-                    // hostfwd=tcp::2222-:22
-                    if (hostFwd.startsWith("hostfwd")) {
-                        throw new Exception("Invalid format for Host Forward, should be: tcp:hostport1:guestport1,udp:hostport2:questport2,...");
-                    }
-                    String[] hostFwdParams = hostFwd.split(",");
-                    for (int i = 0; i < hostFwdParams.length; i++) {
-                        netParams += ",";
-                        String[] hostfwdparam = hostFwdParams[i].split(":");
-                        netParams += ("hostfwd=" + hostfwdparam[0] + "::" + hostfwdparam[1] + "-:" + hostfwdparam[2]);
-                    }
-                }
-                paramsList.add(netParams);
-            } else if (network.equals("tap")) {
-                paramsList.add("tap,vlan=0,ifname=tap0,script=no");
-            } else if (network.equals("none")) {
-                paramsList.add("none");
-            } else {
-                //Unknown interface
-                paramsList.add("none");
-            }
+        if (network == null || network.equals("none")) {
+            paramsList.add("-nic");
+            paramsList.add("none");
+            return;
         }
 
         String networkCard = getNicCard();
-        if (networkCard != null) {
-            paramsList.add("-net");
-            String nicParams = "nic";
-            if (network.equals("tap"))
-                nicParams += ",vlan=0";
-            if (!networkCard.equals("Default"))
-                nicParams += (",model=" + networkCard);
-            paramsList.add(nicParams);
+        if (networkCard == null) {
+            return;
         }
+
+        paramsList.add("-netdev");
+        paramsList.add(getNetdevParams(network));
+
+        paramsList.add("-device");
+        paramsList.add(getNetworkDeviceParams(networkCard));
+    }
+
+    private String getNetdevParams(String network) throws Exception {
+        if (network.equals("user")) {
+            return "user,id=" + NETDEV_ID + getHostForwardParams();
+        } else if (network.equals("tap")) {
+            return "tap,id=" + NETDEV_ID + ",ifname=tap0,script=no,downscript=no";
+        }
+        throw new Exception("Unsupported network backend: " + network);
+    }
+
+    private String getHostForwardParams() throws Exception {
+        String hostFwd = getHostFwd();
+        if (hostFwd == null) {
+            return "";
+        }
+        if (hostFwd.startsWith("hostfwd")) {
+            throw new Exception("Invalid format for Host Forward, should be: tcp:hostport1:guestport1,udp:hostport2:guestport2,...");
+        }
+        StringBuilder params = new StringBuilder();
+        String[] hostFwdParams = hostFwd.split(",");
+        for (String hostFwdParam : hostFwdParams) {
+            String[] parts = hostFwdParam.trim().split(":");
+            if (parts.length != 3) {
+                throw new Exception("Invalid format for Host Forward, should be: tcp:hostport1:guestport1,udp:hostport2:guestport2,...");
+            }
+            params.append(",hostfwd=")
+                    .append(parts[0])
+                    .append("::")
+                    .append(parts[1])
+                    .append("-:")
+                    .append(parts[2]);
+        }
+        return params.toString();
+    }
+
+    private String getNetworkDeviceParams(String networkCard) {
+        String device = getNetworkDeviceName(networkCard);
+        String params = device + ",netdev=" + NETDEV_ID;
+        if (device.equals("pcnet") && !networkCard.contains("rombar=")) {
+            params += ",rombar=0";
+        }
+        return params;
+    }
+
+    private String getNetworkDeviceName(String networkCard) {
+        if ("Default".equals(networkCard)) {
+            return getDefaultNetworkDeviceName();
+        }
+        if ("virtio".equals(networkCard)) {
+            if ((LimboApplication.arch == Config.Arch.arm || LimboApplication.arch == Config.Arch.arm64)
+                    && getMachineType() != null
+                    && getMachineType().startsWith("virt")) {
+                return "virtio-net-device";
+            }
+            return "virtio-net-pci";
+        }
+        return networkCard;
+    }
+
+    private String getDefaultNetworkDeviceName() {
+        if (LimboApplication.arch == Config.Arch.arm || LimboApplication.arch == Config.Arch.arm64) {
+            String machineType = getMachineType();
+            if (machineType != null && machineType.startsWith("virt")) {
+                return "virtio-net-device";
+            }
+            return "smc91c111";
+        }
+        if (LimboApplication.arch == Config.Arch.sparc || LimboApplication.arch == Config.Arch.sparc64) {
+            return "lance";
+        }
+        return "e1000";
     }
 
     private String getHostFwd() {
@@ -464,18 +581,35 @@ private String getQemuLibrary() {
 
     private void addGraphicsOptions(ArrayList<String> paramsList) {
         if (getMachine().getVga() != null) {
-            if (getMachine().getVga().equals("Default")) {
+            String vga = getMachine().getVga();
+            if (vga.equals("Default")) {
                 //do nothing
-            } else if (getMachine().getVga().equals("virtio-gpu-pci")) {
+            } else if (isDeviceBackedGpu(vga)) {
+                if (isVirglGpu(vga) && !MachineController.getInstance().isVNCEnabled()) {
+                    paramsList.add("-display");
+                    paramsList.add("sdl,gl=on");
+                }
                 paramsList.add("-device");
-                paramsList.add(getMachine().getVga());
-            } else if (getMachine().getVga().equals("nographic")) {
+                paramsList.add(vga);
+            } else if (vga.equals("nographic")) {
                 paramsList.add("-nographic");
             } else {
                 paramsList.add("-vga");
-                paramsList.add(getMachine().getVga());
+                paramsList.add(vga);
             }
         }
+    }
+
+    private boolean isDeviceBackedGpu(String vga) {
+        return vga.startsWith("virtio-gpu")
+                || vga.startsWith("virtio-vga")
+                || vga.startsWith("VGA")
+                || vga.startsWith("isa-vga")
+                || vga.startsWith("secondary-vga");
+    }
+
+    private boolean isVirglGpu(String vga) {
+        return vga.contains("virgl=on") || vga.endsWith("-gl");
     }
 
     private void addBootOptions(ArrayList<String> paramsList) {
@@ -503,15 +637,16 @@ private String getQemuLibrary() {
     }
 
     private String getBootDevice() {
+        String bootDevice = getMachine().getBootDevice();
         if (LimboApplication.arch == Config.Arch.arm || LimboApplication.arch == Config.Arch.arm64) {
             return null;
-        } else if (getMachine().getBootDevice().equals("Default")) {
+        } else if ("Default".equals(bootDevice)) {
             return null;
-        } else if (getMachine().getBootDevice().equals("CDROM")) {
+        } else if ("CDROM".equals(bootDevice)) {
             return "d";
-        } else if (getMachine().getBootDevice().equals("Floppy")) {
+        } else if ("Floppy".equals(bootDevice)) {
             return "a";
-        } else if (getMachine().getBootDevice().equals("Hard Disk")) {
+        } else if ("Hard Disk".equals(bootDevice)) {
             return "c";
         }
         return null;
@@ -564,20 +699,73 @@ private String getQemuLibrary() {
                 }
                 paramsList.add(imagePath);
             } else {
-                paramsList.add("-drive");
-                String param = "index=" + index;
-                param += ",if=";
-                param += hdInterface;
-                param += ",media=disk";
-                if (!imagePath.equals("")) {
-                    param += ",file=" + imagePath;
+                if (isVirtioDiskInterface(hdInterface)) {
+                    addModernHardDisk(paramsList, imagePath, index, getVirtioBlockDeviceName());
+                } else if (isScsiDiskInterface(hdInterface)) {
+                    ensureScsiController(paramsList);
+                    addModernHardDisk(paramsList, imagePath, index, "scsi-hd");
+                } else {
+                    paramsList.add("-drive");
+                    String param = "index=" + index;
+                    param += ",if=";
+                    param += hdInterface;
+                    param += ",media=disk";
+                    if (!imagePath.equals("")) {
+                        param += ",file=" + imagePath;
+                    }
+                    param += getDriveCacheParams();
+                    paramsList.add(param);
                 }
-                String cache = LimboSettingsManager.getDiskCache(LimboApplication.getInstance());
-                if(cache != null && !cache.equals("default"))
-                    param += ",cache=" + cache;
-                paramsList.add(param);
             }
         }
+    }
+
+    private void addModernHardDisk(ArrayList<String> paramsList, String imagePath, int index, String deviceName) {
+        String driveId = "limbo-hd" + index;
+        paramsList.add("-drive");
+        String param = "if=none,id=" + driveId + ",media=disk";
+        if (!imagePath.equals("")) {
+            param += ",file=" + imagePath;
+        }
+        param += getDriveCacheParams();
+        paramsList.add(param);
+
+        paramsList.add("-device");
+        paramsList.add(deviceName + ",drive=" + driveId);
+    }
+
+    private void ensureScsiController(ArrayList<String> paramsList) {
+        String controllerParams = "lsi53c895a,id=" + SCSI_CONTROLLER_ID;
+        if (paramsList.contains(controllerParams)) {
+            return;
+        }
+        paramsList.add("-device");
+        paramsList.add(controllerParams);
+    }
+
+    private String getDriveCacheParams() {
+        String cache = LimboSettingsManager.getDiskCache(LimboApplication.getInstance());
+        if (cache != null && !cache.equals("default")) {
+            return ",cache=" + cache;
+        }
+        return "";
+    }
+
+    private boolean isVirtioDiskInterface(String diskInterface) {
+        return diskInterface != null && diskInterface.equals("virtio");
+    }
+
+    private boolean isScsiDiskInterface(String diskInterface) {
+        return diskInterface != null && diskInterface.equals("scsi");
+    }
+
+    private String getVirtioBlockDeviceName() {
+        if ((LimboApplication.arch == Config.Arch.arm || LimboApplication.arch == Config.Arch.arm64)
+                && getMachineType() != null
+                && getMachineType().startsWith("virt")) {
+            return "virtio-blk-device";
+        }
+        return "virtio-blk-pci";
     }
 
     public void addSharedFolder(ArrayList<String> paramsList, String sharedFolderPath) {
@@ -1070,4 +1258,3 @@ private String getQemuLibrary() {
         return LimboSettingsManager.getEnableExternalQMP(LimboApplication.getInstance());
     }
 }
-

@@ -26,6 +26,10 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.media.AudioManager;
 import android.media.AudioRecord;
 import android.media.AudioTrack;
@@ -52,6 +56,13 @@ import android.widget.TextView;
 
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.widget.Toolbar;
+import androidx.core.content.ContextCompat;
+import androidx.core.util.Consumer;
+import androidx.window.java.layout.WindowInfoTrackerCallbackAdapter;
+import androidx.window.layout.DisplayFeature;
+import androidx.window.layout.FoldingFeature;
+import androidx.window.layout.WindowInfoTracker;
+import androidx.window.layout.WindowLayoutInfo;
 
 import com.limbo.emu.lib.R;
 import com.max2idea.android.limbo.files.FileUtils;
@@ -63,6 +74,7 @@ import com.max2idea.android.limbo.machine.Machine;
 import com.max2idea.android.limbo.machine.MachineAction;
 import com.max2idea.android.limbo.machine.MachineController;
 import com.max2idea.android.limbo.machine.MachineProperty;
+import com.max2idea.android.limbo.screen.AdaptiveVmLayout;
 import com.max2idea.android.limbo.screen.ScreenUtils;
 import com.max2idea.android.limbo.toast.ToastUtils;
 
@@ -79,7 +91,7 @@ import java.util.concurrent.Executors;
 public class LimboSDLActivity extends SDLActivity
         implements KeyMapManager.OnSendKeyEventListener, KeyMapManager.OnSendMouseEventListener,
         KeyMapManager.OnUnhandledTouchEventListener, MachineController.OnMachineStatusChangeListener,
-        MachineController.OnEventListener {
+        MachineController.OnEventListener, SensorEventListener {
     public static final int KEYBOARD = 10000;
     private static final String TAG = "LimboSDLActivity";
 
@@ -102,7 +114,14 @@ public class LimboSDLActivity extends SDLActivity
     private KeyMapManager mKeyMapManager;
     private ViewListener viewListener;
     private boolean quit = false;
+    private View mSdlContainer;
     private View mGap;
+    private WindowInfoTrackerCallbackAdapter windowInfoTracker;
+    private Consumer<WindowLayoutInfo> windowLayoutInfoListener;
+    private SensorManager sensorManager;
+    private Sensor hingeAngleSensor;
+    private float hingeAngle = -1f;
+    private int foldPosture = AdaptiveVmLayout.POSTURE_FLAT;
     private boolean resettingLayout;
 
     public void showHints() {
@@ -186,15 +205,19 @@ public class LimboSDLActivity extends SDLActivity
         SDLActivity.handleNativeState();
         SDLActivity.mSuspendOnly = true;
         removeListeners();
+        removeFoldableLayoutTracking();
         quit = true;
         super.onDestroy();
     }
 
     private void removeListeners() {
         MachineController.getInstance().removeOnStatusChangeListener(this);
-        mKeyMapManager.setOnSendKeyEventListener(this);
-        mKeyMapManager.setOnSendMouseEventListener(this);
-        mKeyMapManager.setOnUnhandledTouchEventListener(this);
+        MachineController.getInstance().removeOnEventListener(this);
+        if (mKeyMapManager != null) {
+            mKeyMapManager.setOnSendKeyEventListener(null);
+            mKeyMapManager.setOnSendMouseEventListener(null);
+            mKeyMapManager.setOnUnhandledTouchEventListener(null);
+        }
         setViewListener(null);
     }
 
@@ -484,6 +507,8 @@ public class LimboSDLActivity extends SDLActivity
         mSingleton = this;
         restoreAudioState();
         setupWidgets();
+        setupFoldableLayoutTracking();
+        setupHingeAngleTracking();
         setupListeners();
         setupToolBar();
         showHints();
@@ -537,8 +562,8 @@ public class LimboSDLActivity extends SDLActivity
         mLayout = (RelativeLayout) findViewById(R.id.sdl_layout);
 
         setupKeyMapManager();
-        RelativeLayout mLayout = (RelativeLayout) findViewById(R.id.sdl);
-        mLayout.addView(mSurface);
+        mSdlContainer = findViewById(R.id.sdl);
+        ((RelativeLayout) mSdlContainer).addView(mSurface);
 
         mGap = (View) findViewById(R.id.gap);
         updateLayout(getResources().getConfiguration().orientation);
@@ -573,6 +598,7 @@ public class LimboSDLActivity extends SDLActivity
         if (MachineController.getInstance().isRunning())
             notifyAction(MachineAction.UPDATE_NOTIFICATION,
                     getString(R.string.VMSuspended));
+        unregisterHingeAngleTracking();
         super.onPause();
     }
 
@@ -632,6 +658,7 @@ public class LimboSDLActivity extends SDLActivity
             notifyAction(MachineAction.UPDATE_NOTIFICATION,
                     getString(R.string.VMRunning));
         super.onResume();
+        registerHingeAngleTracking();
     }
 
     public void loadLibraries() {
@@ -730,10 +757,108 @@ public class LimboSDLActivity extends SDLActivity
     }
 
     public void updateLayout(int orientation) {
-        if (orientation == Configuration.ORIENTATION_PORTRAIT)
-            mGap.setVisibility(View.VISIBLE);
-        else
-            mGap.setVisibility(View.GONE);
+        int width = getWindow().getDecorView().getWidth();
+        int height = getWindow().getDecorView().getHeight();
+        if (width <= 0 || height <= 0) {
+            width = getResources().getDisplayMetrics().widthPixels;
+            height = getResources().getDisplayMetrics().heightPixels;
+        }
+        float controlAreaFraction = AdaptiveVmLayout.apply(mSdlContainer, mGap, orientation, width, height, foldPosture);
+        if (mKeyMapManager != null && mKeyMapManager.keySurfaceView != null) {
+            mKeyMapManager.keySurfaceView.setControlArea(
+                    controlAreaFraction,
+                    foldPosture == AdaptiveVmLayout.POSTURE_BOOK
+            );
+            mKeyMapManager.keySurfaceView.updateDimensions();
+            mKeyMapManager.keySurfaceView.paint(true);
+        }
+    }
+
+    private void setupFoldableLayoutTracking() {
+        windowInfoTracker = new WindowInfoTrackerCallbackAdapter(WindowInfoTracker.getOrCreate(this));
+        windowLayoutInfoListener = new Consumer<WindowLayoutInfo>() {
+            @Override
+            public void accept(WindowLayoutInfo windowLayoutInfo) {
+                foldPosture = getFoldPosture(windowLayoutInfo);
+                updateLayout(getResources().getConfiguration().orientation);
+            }
+        };
+        windowInfoTracker.addWindowLayoutInfoListener(
+                this,
+                ContextCompat.getMainExecutor(this),
+                windowLayoutInfoListener
+        );
+    }
+
+    private void removeFoldableLayoutTracking() {
+        if (windowInfoTracker != null && windowLayoutInfoListener != null) {
+            windowInfoTracker.removeWindowLayoutInfoListener(windowLayoutInfoListener);
+        }
+        windowLayoutInfoListener = null;
+        windowInfoTracker = null;
+    }
+
+    private int getFoldPosture(WindowLayoutInfo windowLayoutInfo) {
+        for (DisplayFeature feature : windowLayoutInfo.getDisplayFeatures()) {
+            if (feature instanceof FoldingFeature) {
+                FoldingFeature fold = (FoldingFeature) feature;
+                if (FoldingFeature.State.HALF_OPENED.equals(fold.getState())) {
+                    if (FoldingFeature.Orientation.HORIZONTAL.equals(fold.getOrientation())) {
+                        return AdaptiveVmLayout.POSTURE_TABLETOP;
+                    }
+                    return AdaptiveVmLayout.POSTURE_BOOK;
+                }
+            }
+        }
+        return AdaptiveVmLayout.POSTURE_FLAT;
+    }
+
+    private void setupHingeAngleTracking() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+            return;
+        }
+        sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+        if (sensorManager != null) {
+            hingeAngleSensor = sensorManager.getDefaultSensor(Sensor.TYPE_HINGE_ANGLE);
+        }
+    }
+
+    private void registerHingeAngleTracking() {
+        if (sensorManager != null && hingeAngleSensor != null) {
+            sensorManager.registerListener(this, hingeAngleSensor, SensorManager.SENSOR_DELAY_UI);
+        }
+    }
+
+    private void unregisterHingeAngleTracking() {
+        if (sensorManager != null && hingeAngleSensor != null) {
+            sensorManager.unregisterListener(this, hingeAngleSensor);
+        }
+    }
+
+    @Override
+    public void onSensorChanged(SensorEvent event) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R
+                || event.sensor.getType() != Sensor.TYPE_HINGE_ANGLE
+                || event.values.length == 0) {
+            return;
+        }
+        float newAngle = event.values[0];
+        if (hingeAngle >= 0 && Math.abs(newAngle - hingeAngle) < 5f) {
+            return;
+        }
+        hingeAngle = newAngle;
+        if (newAngle >= 165f) {
+            foldPosture = AdaptiveVmLayout.POSTURE_FLAT;
+        } else if (newAngle > 30f) {
+            foldPosture = getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE
+                    ? AdaptiveVmLayout.POSTURE_TABLETOP
+                    : AdaptiveVmLayout.POSTURE_BOOK;
+        }
+        updateLayout(getResources().getConfiguration().orientation);
+    }
+
+    @Override
+    public void onAccuracyChanged(Sensor sensor, int accuracy) {
     }
 
     public void promptSDLDisplay() {
