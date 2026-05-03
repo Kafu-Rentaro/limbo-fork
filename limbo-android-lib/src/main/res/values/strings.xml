@@ -315,6 +315,7 @@
     <string name="DoNotShowAgain">Do not Show Again</string>
     <string name="GenNewVersion">Get New Version</string>
     <string name="Cancel">Cancel</string>
+    <string name="Apply">Apply</string>
     <string name="Delete">Delete</string>
     <string name="KeyMapper">Key Mapper</string>
     <string name="DeleteKeyMapper">Delete Key Mapper?</string>
