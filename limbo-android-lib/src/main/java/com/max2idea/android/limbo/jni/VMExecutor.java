@@ -52,6 +52,7 @@ import java.util.Arrays;
  */
 class VMExecutor extends MachineExecutor {
     private static final String TAG = "VMExecutor";
+    private static final String AUDIO_DEVICE_ID = "limbo-audio0";
 
     private static final String cdDeviceName = "ide1-cd0";
     private static final String fdaDeviceName = "floppy0";
@@ -247,10 +248,24 @@ private String getQemuLibrary() {
     }
 
     private void addAudioOptions(ArrayList<String> paramsList) {
-        if (getSoundCard() != null) {
-            paramsList.add("-soundhw");
-            paramsList.add(getSoundCard());
+        String soundCard = getSoundCard();
+        if (soundCard == null) {
+            return;
         }
+        if ("pcspk".equals(soundCard)) {
+            paramsList.add("-audiodev");
+            paramsList.add("driver=sdl,id=" + AUDIO_DEVICE_ID);
+            return;
+        }
+        paramsList.add("-audio");
+        paramsList.add("driver=sdl,model=" + getAudioModel(soundCard) + ",id=" + AUDIO_DEVICE_ID);
+    }
+
+    private String getAudioModel(String soundCard) {
+        if ("all".equals(soundCard)) {
+            return "hda";
+        }
+        return soundCard;
     }
 
     private void addGenericOptions(Context context, ArrayList<String> paramsList) {
@@ -312,9 +327,10 @@ private String getQemuLibrary() {
             paramsList.add("-smp");
             paramsList.add(getMachine().getCpuNum() + "");
         }
-        if (getMachineType() != null && !getMachineType().equals("Default")) {
+        String machineType = getMachineTypeWithRuntimeProperties();
+        if (machineType != null && !machineType.equals("Default")) {
             paramsList.add("-M");
-            paramsList.add(getMachineType());
+            paramsList.add(machineType);
         }
 
         //FIXME: something is wrong with quoting that doesn't let sparc qemu find the cpu def
@@ -333,13 +349,6 @@ private String getQemuLibrary() {
                     cpu = "qemu64";
             }
             cpu += ",-tsc";
-        }
-
-        if (getMachine().getDisableAcpi() != 0) {
-            paramsList.add("-no-acpi"); //disable ACPI
-        }
-        if (getMachine().getDisableHPET() != 0) {
-            paramsList.add("-no-hpet"); //        disable HPET
         }
 
         if (cpu != null && !cpu.equals("Default")) {
@@ -384,6 +393,40 @@ private String getQemuLibrary() {
             machineType = null;
         }
         return machineType;
+    }
+
+    private String getMachineTypeWithRuntimeProperties() {
+        String machineType = getMachineType();
+        if (!supportsPcMachineProperties(machineType)) {
+            return machineType;
+        }
+        if (getMachine().getDisableAcpi() != 0) {
+            machineType = appendMachineProperty(machineType, "acpi", "off");
+        }
+        if (getMachine().getDisableHPET() != 0) {
+            machineType = appendMachineProperty(machineType, "hpet", "off");
+        }
+        if ("pcspk".equals(getSoundCard())) {
+            machineType = appendMachineProperty(machineType, "pcspk-audiodev", AUDIO_DEVICE_ID);
+        }
+        return machineType;
+    }
+
+    private boolean supportsPcMachineProperties(String machineType) {
+        if (LimboApplication.arch == Config.Arch.x86 || LimboApplication.arch == Config.Arch.x86_64) {
+            return true;
+        }
+        return machineType != null && (machineType.startsWith("pc") || machineType.startsWith("q35"));
+    }
+
+    private String appendMachineProperty(String machineType, String property, String value) {
+        if (machineType == null || machineType.equals("Default")) {
+            machineType = "pc";
+        }
+        if (machineType.contains(property + "=")) {
+            return machineType;
+        }
+        return machineType + "," + property + "=" + value;
     }
 
     private void addNetworkOptions(ArrayList<String> paramsList) throws Exception {

@@ -28,6 +28,7 @@
 - Windows 98/Me、2000/XP、7、10、11 + 3D 向けの x86 guest profile 適用 UI を追加した。
 - Android debug build/lint を GitHub Actions で実行する CI を追加した。
 - Windows 98/Me 向けに `VGA,vgamem_mb=64` の 3D-ready profile を追加し、QEMU 起動時に `-device VGA,vgamem_mb=64` として渡せるようにした。
+- QEMU 11 で削除済みの `-soundhw` / `-no-acpi` / `-no-hpet` を避け、`-audio driver=sdl,model=...` と `-machine acpi=off,hpet=off` を生成するようにした。
 
 ## 目標バージョン
 
@@ -89,8 +90,9 @@ QEMU 5.1.0 から 11.0.0 への直接差し替えは大きな破壊的変更を�
    - refresh/fullscreen/mouse hooks
 3. QEMU 11 の Meson/configure 体系に合わせて Android cross file を作る。
 4. 旧 `--audio-drv-list`, `--enable-sdl`, `--disable-opengl` などの configure option を QEMU 11 の option 名に更新する。
-5. `qemu_init`, `qemu_main_loop`, `qemu_cleanup`, shutdown/reset symbol の互換性を確認する。
-6. QMP ベースの制御を増やし、dlsym で QEMU 内部変数を書き換える箇所を減らす。
+5. runtime の `-soundhw`, `-no-acpi`, `-no-hpet` 依存を現行 QEMU の `-audio` / `-machine` 形式へ移行する。
+6. `qemu_init`, `qemu_main_loop`, `qemu_cleanup`, shutdown/reset symbol の互換性を確認する。
+7. QMP ベースの制御を増やし、dlsym で QEMU 内部変数を書き換える箇所を減らす。
 
 完了条件:
 
