@@ -81,6 +81,7 @@ object ArchDefinitions {
             vgaValues.add(GraphicsCapabilities.VIRTIO_VGA)
             vgaValues.add(GraphicsCapabilities.VIRTIO_VGA_GL)
             vgaValues.add(GraphicsCapabilities.VIRTIO_GPU_PCI)
+            vgaValues.add(GraphicsCapabilities.VIRTIO_GPU_GL_PCI)
             vgaValues.add(GraphicsCapabilities.VIRTIO_GPU_PCI_VIRGL)
         }
 
@@ -90,6 +91,7 @@ object ArchDefinitions {
 
         if (LimboApplication.arch == Config.Arch.arm || LimboApplication.arch == Config.Arch.arm64) {
             vgaValues.add(GraphicsCapabilities.VIRTIO_GPU_PCI)
+            vgaValues.add(GraphicsCapabilities.VIRTIO_GPU_GL_PCI)
             vgaValues.add(GraphicsCapabilities.VIRTIO_GPU_PCI_VIRGL)
         }
 

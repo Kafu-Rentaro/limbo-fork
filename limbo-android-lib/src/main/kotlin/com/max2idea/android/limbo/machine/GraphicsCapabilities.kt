@@ -5,6 +5,7 @@ object GraphicsCapabilities {
     const val VIRTIO_VGA = "virtio-vga"
     const val VIRTIO_VGA_GL = "virtio-vga-gl"
     const val VIRTIO_GPU_PCI = "virtio-gpu-pci"
+    const val VIRTIO_GPU_GL_PCI = "virtio-gpu-gl-pci"
     const val VIRTIO_GPU_PCI_VIRGL = "virtio-gpu-pci,virgl=on"
 
     @JvmStatic
@@ -20,6 +21,18 @@ object GraphicsCapabilities {
 
     @JvmStatic
     fun isVirglGpu(vga: String?): Boolean {
-        return vga != null && (vga.contains("virgl=on") || vga.endsWith("-gl"))
+        return vga != null && (vga.contains("virgl=on") || vga.contains("-gl"))
+    }
+
+    @JvmStatic
+    fun requiresSdlDisplay(vga: String?): Boolean = isVirglGpu(vga)
+
+    @JvmStatic
+    fun getDisplayBackend(vga: String?): String? {
+        return if (requiresSdlDisplay(vga)) {
+            "sdl,gl=on"
+        } else {
+            null
+        }
     }
 }
