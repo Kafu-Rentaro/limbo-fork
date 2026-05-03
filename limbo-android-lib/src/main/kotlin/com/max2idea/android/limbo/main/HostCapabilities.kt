@@ -19,19 +19,37 @@ object HostCapabilities {
 
     @JvmStatic
     fun logHostCapabilities() {
-        val supportedAbis = Build.SUPPORTED_ABIS?.joinToString(",").orEmpty()
-        val supported64BitAbis = Build.SUPPORTED_64_BIT_ABIS?.joinToString(",").orEmpty()
-        val cpuFeatures = readCpuFeatures()
-        val arm64Baseline = Build.SUPPORTED_64_BIT_ABIS?.contains("arm64-v8a") == true
-        val armv9Candidate = cpuFeatures.any { it in armv9FeatureHints }
+        val snapshot = readSnapshot()
 
-        Log.d(TAG, "Supported ABIs: $supportedAbis")
-        Log.d(TAG, "Supported 64-bit ABIs: $supported64BitAbis")
-        Log.d(TAG, "ARMv8 baseline available: $arm64Baseline")
-        Log.d(TAG, "ARMv9 optimization hints available: $armv9Candidate")
-        if (cpuFeatures.isNotEmpty()) {
-            Log.d(TAG, "CPU feature hints: ${cpuFeatures.joinToString(",")}")
+        Log.d(TAG, "Supported ABIs: ${snapshot.supportedAbis}")
+        Log.d(TAG, "Supported 64-bit ABIs: ${snapshot.supported64BitAbis}")
+        Log.d(TAG, "ARMv8 baseline available: ${snapshot.arm64Baseline}")
+        Log.d(TAG, "ARMv9 optimization hints available: ${snapshot.armv9Candidate}")
+        if (snapshot.cpuFeatures.isNotEmpty()) {
+            Log.d(TAG, "CPU feature hints: ${snapshot.cpuFeatures.joinToString(",")}")
         }
+    }
+
+    @JvmStatic
+    fun getSummary(): String {
+        val snapshot = readSnapshot()
+        return buildString {
+            appendLine("Host ABIs: ${snapshot.supportedAbis.ifBlank { "unknown" }}")
+            appendLine("Host 64-bit ABIs: ${snapshot.supported64BitAbis.ifBlank { "none" }}")
+            appendLine("ARMv8 baseline: ${snapshot.arm64Baseline.toYesNo()}")
+            append("ARMv9 optimization hints: ${snapshot.armv9Candidate.toYesNo()}")
+        }
+    }
+
+    private fun readSnapshot(): HostCapabilitySnapshot {
+        val cpuFeatures = readCpuFeatures()
+        return HostCapabilitySnapshot(
+            supportedAbis = Build.SUPPORTED_ABIS?.joinToString(",").orEmpty(),
+            supported64BitAbis = Build.SUPPORTED_64_BIT_ABIS?.joinToString(",").orEmpty(),
+            cpuFeatures = cpuFeatures,
+            arm64Baseline = Build.SUPPORTED_64_BIT_ABIS?.contains("arm64-v8a") == true,
+            armv9Candidate = cpuFeatures.any { it in armv9FeatureHints },
+        )
     }
 
     private fun readCpuFeatures(): Set<String> {
@@ -60,4 +78,16 @@ object HostCapabilities {
                 .toSet()
         }.getOrDefault(emptySet())
     }
+
+    private fun Boolean.toYesNo(): String {
+        return if (this) "yes" else "no"
+    }
+
+    private data class HostCapabilitySnapshot(
+        val supportedAbis: String,
+        val supported64BitAbis: String,
+        val cpuFeatures: Set<String>,
+        val arm64Baseline: Boolean,
+        val armv9Candidate: Boolean,
+    )
 }

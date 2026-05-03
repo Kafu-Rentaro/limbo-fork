@@ -32,7 +32,7 @@
 - QEMU 11.0.0 を Android NDK/LLVM toolchain で configure する `tools/configure-qemu-11-android.sh` を追加した。
 - QEMU network runtime options を `-net` から `-netdev ... -device ...` へ移行し、`virtio` NIC を arch/machine に応じた device 名へ解決するようにした。
 - `virtio` / `scsi` hard disk runtime options を `-drive if=none,id=...` + `-device virtio-blk-*` / `scsi-hd` 形式へ移行した。
-- Android host の ABI と ARMv8 baseline / ARMv9 optimization hint を起動時ログへ出す `HostCapabilities` を追加した。
+- Android host の ABI と ARMv8 baseline / ARMv9 optimization hint を起動時ログと Help 画面へ出す `HostCapabilities` を追加した。
 
 ## 目標バージョン
 
