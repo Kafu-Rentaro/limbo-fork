@@ -7,9 +7,11 @@ QEMU_DIR="${JNI_DIR}/qemu"
 BUILD_HOST="${BUILD_HOST:-arm64-v8a}"
 BUILD_GUEST="${BUILD_GUEST:-x86_64-softmmu}"
 NDK_PLATFORM_API="${NDK_PLATFORM_API:-23}"
+HOST_TAG="${HOST_TAG:-}"
 USE_ARMV9="${USE_ARMV9:-false}"
 USE_VIRGL="${USE_VIRGL:-false}"
 CONFIGURE_ONLY="${CONFIGURE_ONLY:-true}"
+DRY_RUN="${DRY_RUN:-false}"
 
 usage() {
     cat <<EOF
@@ -25,8 +27,10 @@ Options:
   --api LEVEL          Android API level. Default: ${NDK_PLATFORM_API}
   --ndk PATH           Android NDK root. Also reads ANDROID_NDK_HOME,
                        ANDROID_NDK_ROOT, or the newest ANDROID_HOME/ndk entry.
+  --host-tag TAG       NDK prebuilt host tag. Auto-detected by default.
   --armv9              Use -march=armv9-a for arm64-v8a host builds.
   --virgl              Enable OpenGL and virglrenderer configure flags.
+  --dry-run            Print the configure environment and command, then exit.
   --build              Run make after configure.
   -h, --help           Show this help.
 
@@ -56,11 +60,18 @@ while (($#)); do
             shift
             NDK_ROOT="${1:?Missing value for --ndk}"
             ;;
+        --host-tag)
+            shift
+            HOST_TAG="${1:?Missing value for --host-tag}"
+            ;;
         --armv9)
             USE_ARMV9=true
             ;;
         --virgl)
             USE_VIRGL=true
+            ;;
+        --dry-run)
+            DRY_RUN=true
             ;;
         --build)
             CONFIGURE_ONLY=false
@@ -87,18 +98,12 @@ if [[ -z "${NDK_ROOT}" || ! -d "${NDK_ROOT}" ]]; then
     exit 1
 fi
 
-if [[ ! -x "${QEMU_DIR}/configure" ]]; then
-    printf 'QEMU source tree not found at %s.\n' "${QEMU_DIR}" >&2
-    printf 'Run tools/fetch-qemu-11.sh first.\n' >&2
-    exit 1
-fi
-
 case "$(uname -s)" in
     Darwin)
-        HOST_TAG="darwin-x86_64"
+        HOST_TAG_CANDIDATES=("darwin-$(uname -m)" "darwin-x86_64" "darwin-arm64")
         ;;
     Linux)
-        HOST_TAG="linux-x86_64"
+        HOST_TAG_CANDIDATES=("linux-$(uname -m)" "linux-x86_64" "linux-aarch64")
         ;;
     *)
         printf 'Unsupported build OS: %s\n' "$(uname -s)" >&2
@@ -106,8 +111,30 @@ case "$(uname -s)" in
         ;;
 esac
 
+if [[ -z "${HOST_TAG}" ]]; then
+    for candidate in "${HOST_TAG_CANDIDATES[@]}"; do
+        if [[ -d "${NDK_ROOT}/toolchains/llvm/prebuilt/${candidate}" ]]; then
+            HOST_TAG="${candidate}"
+            break
+        fi
+    done
+fi
+
+if [[ -z "${HOST_TAG}" ]]; then
+    printf 'Could not find an NDK llvm prebuilt under %s/toolchains/llvm/prebuilt.\n' "${NDK_ROOT}" >&2
+    printf 'Tried: %s\n' "${HOST_TAG_CANDIDATES[*]}" >&2
+    printf 'Use --host-tag to select one manually.\n' >&2
+    exit 1
+fi
+
 TOOLCHAIN_BIN="${NDK_ROOT}/toolchains/llvm/prebuilt/${HOST_TAG}/bin"
 SYSROOT="${NDK_ROOT}/toolchains/llvm/prebuilt/${HOST_TAG}/sysroot"
+
+if [[ ! -d "${TOOLCHAIN_BIN}" || ! -d "${SYSROOT}" ]]; then
+    printf 'NDK llvm prebuilt host tag not found or incomplete: %s\n' "${HOST_TAG}" >&2
+    printf 'Expected bin and sysroot under %s/toolchains/llvm/prebuilt/%s\n' "${NDK_ROOT}" "${HOST_TAG}" >&2
+    exit 1
+fi
 
 case "${BUILD_HOST}" in
     arm64-v8a)
@@ -145,6 +172,10 @@ CXX="${TOOLCHAIN_BIN}/${TARGET_TRIPLE}${NDK_PLATFORM_API}-clang++"
 if [[ ! -x "${CC}" || ! -x "${CXX}" ]]; then
     printf 'NDK clang not found for %s API %s under %s\n' "${TARGET_TRIPLE}" "${NDK_PLATFORM_API}" "${TOOLCHAIN_BIN}" >&2
     exit 1
+fi
+
+if [[ "${USE_ARMV9}" == true && "${BUILD_HOST}" != "arm64-v8a" ]]; then
+    printf 'Warning: --armv9 only affects arm64-v8a host builds; current host is %s.\n' "${BUILD_HOST}" >&2
 fi
 
 BUILD_DIR="${ROOT_DIR}/build/qemu-android/${BUILD_HOST}-${BUILD_GUEST}"
@@ -203,8 +234,32 @@ printf 'Configuring QEMU for Android\n'
 printf '  host ABI: %s\n' "${BUILD_HOST}"
 printf '  guest:    %s\n' "${BUILD_GUEST}"
 printf '  API:      %s\n' "${NDK_PLATFORM_API}"
+printf '  host tag: %s\n' "${HOST_TAG}"
 printf '  NDK:      %s\n' "${NDK_ROOT}"
 printf '  build:    %s\n' "${BUILD_DIR}"
+
+if [[ "${DRY_RUN}" == true ]]; then
+    printf '\nEnvironment:\n'
+    printf '  AR=%q\n' "${AR}"
+    printf '  CC=%q\n' "${CC}"
+    printf '  CXX=%q\n' "${CXX}"
+    printf '  LD=%q\n' "${LD}"
+    printf '  PKG_CONFIG=%q\n' "${PKG_CONFIG}"
+    printf '  PKG_CONFIG_LIBDIR=%q\n' "${PKG_CONFIG_LIBDIR}"
+    printf '  CFLAGS=%q\n' "${CFLAGS}"
+    printf '  CXXFLAGS=%q\n' "${CXXFLAGS}"
+    printf '  LDFLAGS=%q\n' "${LDFLAGS}"
+    printf '\nConfigure command:\n  %q' "${QEMU_DIR}/configure"
+    printf ' %q' "${CONFIGURE_ARGS[@]}"
+    printf '\n'
+    exit 0
+fi
+
+if [[ ! -x "${QEMU_DIR}/configure" ]]; then
+    printf 'QEMU source tree not found at %s.\n' "${QEMU_DIR}" >&2
+    printf 'Run tools/fetch-qemu-11.sh first.\n' >&2
+    exit 1
+fi
 
 cd "${BUILD_DIR}"
 "${QEMU_DIR}/configure" "${CONFIGURE_ARGS[@]}"

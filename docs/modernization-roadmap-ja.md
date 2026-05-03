@@ -17,15 +17,20 @@
 - Android Gradle Plugin 8.13.2 / Kotlin 2.3.0 へ更新した。
 - compileSdk/targetSdk 36、minSdk 23 に更新した。
 - 各アーキテクチャの entry Activity、`ArchDefinitions`、`MachineProperty`、`MachineAction` を Kotlin 化した。
+- `LimboApplication` を Kotlin 化し、既存 Java 呼び出しとの static API 互換を維持した。
+- Help dialog を Kotlin 化し、Material dialog builder で host capability summary を表示するようにした。
 - Material 3 Expressive theme を導入した。
 - Jetpack WindowManager と hinge angle sensor による foldable posture 検出を SDL 画面に接続した。
 - SDL 表示領域と touch-control 領域を posture/orientation に応じて自動配分する `AdaptiveVmLayout` を追加した。
+- hinge angle が取得できる端末では、30-165度の範囲で display/control 比率を連続的に補間するようにした。
 - F1-F12、矢印、修飾キー、ナビゲーションキーを含む `Full Keyboard (F1-F12)` key mapper preset を追加した。
 - virtio GPU / virgl 選択肢と `-display sdl,gl=on` の QEMU 引数生成を追加した。
+- `VNC + virgl` の保存済み設定が起動時に残っている場合は、SDL display への切り替えを促して停止する保護を追加した。
 - `USE_ARMV9=true` と `USE_VIRGL=true` の native build flag を追加した。
 - QEMU 11.0.0 用の GPG signature 検証つき取得 script と version config stub を追加した。
 - full keyboard preset を操作領域いっぱいに描画し、上下分割/tabletop/左右分割/book posture の比率と連動するようにした。
 - Windows 98/Me、2000/XP、7、10、11 + 3D 向けの x86 guest profile 適用 UI を追加した。
+- Guest profile 適用前に machine/CPU/GPU/storage と注意点を確認できるダイアログを追加した。
 - Android debug build/lint を GitHub Actions で実行する CI を追加した。
 - Windows 98/Me 向けに `VGA,vgamem_mb=64` の 3D-ready profile を追加し、QEMU 起動時に `-device VGA,vgamem_mb=64` として渡せるようにした。
 - QEMU 11 で削除済みの `-soundhw` / `-no-acpi` / `-no-hpet` を避け、QEMU 7.1+ では `-audio driver=sdl,model=...`、QEMU 9.0+ では `-machine acpi=off,hpet=off` を生成するようにした。

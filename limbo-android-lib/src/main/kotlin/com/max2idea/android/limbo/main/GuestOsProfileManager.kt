@@ -7,6 +7,7 @@ import androidx.appcompat.app.AlertDialog
 import com.limbo.emu.lib.R
 import com.max2idea.android.limbo.machine.Machine
 import com.max2idea.android.limbo.machine.MachineProperty
+import com.max2idea.android.limbo.machine.GraphicsCapabilities
 import com.max2idea.android.limbo.toast.ToastUtils
 
 object GuestOsProfileManager {
@@ -25,6 +26,7 @@ object GuestOsProfileManager {
             hdaInterface = "ide",
             cdInterface = "ide",
             disableTsc = true,
+            notes = listOf("Stable Win9x baseline. 3D acceleration is not enabled in this profile."),
         ),
         GuestOsProfile(
             title = "Windows 98 / Me + 3D ready",
@@ -32,7 +34,7 @@ object GuestOsProfileManager {
             machineType = "pc,hpet=off,usb=off",
             cpu = "pentium2",
             memoryMb = 256,
-            vga = "VGA,vgamem_mb=64",
+            vga = GraphicsCapabilities.LEGACY_VGA_64MB,
             soundCard = "ac97",
             network = "User",
             nic = "pcnet",
@@ -42,6 +44,10 @@ object GuestOsProfileManager {
             disableTsc = true,
             ui = "SDL",
             extraParams = "-rtc base=localtime",
+            notes = listOf(
+                "Uses legacy VGA 64MB, not virtio/virgl.",
+                "Requires guest-side BOXV9x/SoftGPU/qemu-3dfx style driver or wrapper setup.",
+            ),
         ),
         GuestOsProfile(
             title = "Windows 2000 / XP",
@@ -57,6 +63,7 @@ object GuestOsProfileManager {
             hdaInterface = "ide",
             cdInterface = "ide",
             disableTsc = true,
+            notes = listOf("VMware SVGA is a 2D compatibility path for this profile."),
         ),
         GuestOsProfile(
             title = "Windows 7",
@@ -73,6 +80,7 @@ object GuestOsProfileManager {
             hdaInterface = "ide",
             cdInterface = "ide",
             disableTsc = false,
+            notes = listOf("Install matching guest drivers before switching storage or GPU to virtio."),
         ),
         GuestOsProfile(
             title = "Windows 10",
@@ -90,6 +98,7 @@ object GuestOsProfileManager {
             cdInterface = "ide",
             disableTsc = false,
             ui = "SDL",
+            notes = listOf("Requires virtio guest drivers for storage/network devices."),
         ),
         GuestOsProfile(
             title = "Windows 11 + 3D",
@@ -98,7 +107,7 @@ object GuestOsProfileManager {
             cpu = "qemu64",
             cpuCores = 4,
             memoryMb = 4096,
-            vga = "virtio-gpu-pci,virgl=on",
+            vga = GraphicsCapabilities.VIRTIO_GPU_PCI_VIRGL,
             soundCard = "hda",
             network = "User",
             nic = "virtio",
@@ -107,6 +116,10 @@ object GuestOsProfileManager {
             cdInterface = "ide",
             disableTsc = false,
             ui = "SDL",
+            notes = listOf(
+                "Requires a native build with USE_VIRGL=true and OpenGL/virglrenderer dependencies.",
+                "Requires guest driver support for virtio GPU/virgl.",
+            ),
         ),
     )
 
@@ -127,6 +140,18 @@ object GuestOsProfileManager {
             .setTitle(R.string.guest_profile)
             .setAdapter(adapter) { dialog: DialogInterface, which: Int ->
                 val profile = x86WindowsProfiles[which]
+                dialog.dismiss()
+                confirmApply(activity, profile, viewListener)
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun confirmApply(activity: Activity, profile: GuestOsProfile, viewListener: ViewListener) {
+        AlertDialog.Builder(activity)
+            .setTitle(profile.title)
+            .setMessage(profile.summary())
+            .setPositiveButton(R.string.Apply) { dialog: DialogInterface, _: Int ->
                 profile.applyTo(viewListener)
                 ToastUtils.toastShort(
                     activity,
@@ -155,7 +180,33 @@ object GuestOsProfileManager {
         val disableTsc: Boolean,
         val ui: String? = null,
         val extraParams: String? = null,
+        val notes: List<String> = emptyList(),
     ) {
+        fun summary(): String {
+            return buildString {
+                appendLine(description)
+                appendLine()
+                appendLine("Machine: $machineType")
+                appendLine("CPU: $cpu, cores: $cpuCores")
+                appendLine("Memory: ${memoryMb}MB")
+                appendLine("GPU: $vga")
+                appendLine("Audio: $soundCard")
+                appendLine("Network: $network / $nic")
+                appendLine("Disk: HDA=$hdaInterface, CD=$cdInterface")
+                if (ui != null) {
+                    appendLine("UI: $ui")
+                }
+                if (extraParams != null) {
+                    appendLine("Extra params: $extraParams")
+                }
+                if (notes.isNotEmpty()) {
+                    appendLine()
+                    appendLine("Notes:")
+                    notes.forEach { appendLine("- $it") }
+                }
+            }.trim()
+        }
+
         fun applyTo(viewListener: ViewListener) {
             viewListener.onFieldChange(MachineProperty.MACHINETYPE, machineType)
             viewListener.onFieldChange(MachineProperty.CPU, cpu)

@@ -16,12 +16,12 @@ Copyright (C) Max Kastanas 2012
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
  */
-package com.max2idea.android.limbo.main;
+package com.max2idea.android.limbo.main
 
-import com.max2idea.android.limbo.machine.MachineAction;
-import com.max2idea.android.limbo.machine.MachineProperty;
+import com.max2idea.android.limbo.machine.MachineAction
+import com.max2idea.android.limbo.machine.MachineProperty
 
-public interface ViewListener {
-    void onFieldChange(MachineProperty property, Object value);
-    void onAction(MachineAction stopVm, Object value);
+interface ViewListener {
+    fun onFieldChange(property: MachineProperty, value: Any?)
+    fun onAction(stopVm: MachineAction, value: Any?)
 }

@@ -63,6 +63,10 @@ https://github.com/limboemu/limbo
     ./tools/configure-qemu-11-android.sh --host arm64-v8a --guest x86_64-softmmu
     # ARMv9-tuned host build plus virgl/OpenGL flags:
     ./tools/configure-qemu-11-android.sh --host arm64-v8a --guest x86_64-softmmu --armv9 --virgl
+    # To inspect the generated environment and configure command without running configure:
+    ./tools/configure-qemu-11-android.sh --host arm64-v8a --guest x86_64-softmmu --armv9 --virgl --dry-run
+    # If NDK prebuilt host-tag auto-detection does not match your environment:
+    ./tools/configure-qemu-11-android.sh --host-tag darwin-x86_64 --host arm64-v8a --guest x86_64-softmmu
     # example for version 5.1.0:
     wget http://download.qemu-project.org/qemu-5.1.0.tar.xz -P /tmp/
     tar -xJf /tmp/qemu-5.1.0.tar.xz

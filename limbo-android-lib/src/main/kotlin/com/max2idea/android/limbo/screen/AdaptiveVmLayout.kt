@@ -20,7 +20,6 @@ object AdaptiveVmLayout {
     private const val PORTRAIT_CONTROL_WEIGHT = 40f
     private const val WIDE_DISPLAY_WEIGHT = 75f
     private const val WIDE_CONTROL_WEIGHT = 25f
-    private const val FOLDED_DISPLAY_WEIGHT = 50f
     private const val FOLDED_CONTROL_WEIGHT = 50f
     private const val COMPACT_DISPLAY_WEIGHT = 100f
 
@@ -44,6 +43,19 @@ object AdaptiveVmLayout {
         heightPx: Int,
         posture: Int
     ): Float {
+        return apply(displayContainer, controlGap, orientation, widthPx, heightPx, posture, -1f)
+    }
+
+    @JvmStatic
+    fun apply(
+        displayContainer: View?,
+        controlGap: View?,
+        orientation: Int,
+        widthPx: Int,
+        heightPx: Int,
+        posture: Int,
+        hingeAngleDegrees: Float
+    ): Float {
         if (displayContainer == null || controlGap == null) {
             return 0f
         }
@@ -52,14 +64,26 @@ object AdaptiveVmLayout {
         val longestSide = maxOf(widthPx, heightPx)
         val isLargeOrFoldableLike = shortestSide >= 900 || longestSide >= shortestSide * 2
 
-        val controlWeight = when {
-            posture == POSTURE_TABLETOP || posture == POSTURE_BOOK -> FOLDED_CONTROL_WEIGHT
+        val flatControlWeight = when {
             orientation == Configuration.ORIENTATION_PORTRAIT -> PORTRAIT_CONTROL_WEIGHT
             isLargeOrFoldableLike -> WIDE_CONTROL_WEIGHT
             else -> 0f
         }
+        val foldedTargetControlWeight = when (orientation) {
+            Configuration.ORIENTATION_PORTRAIT -> PORTRAIT_CONTROL_WEIGHT
+            else -> WIDE_CONTROL_WEIGHT
+        }
+        val isFoldedPosture = posture == POSTURE_TABLETOP || posture == POSTURE_BOOK
+        val controlWeight = when {
+            isFoldedPosture && hingeAngleDegrees in 30f..165f -> {
+                val openFraction = ((hingeAngleDegrees - 30f) / 135f).coerceIn(0f, 1f)
+                FOLDED_CONTROL_WEIGHT + (foldedTargetControlWeight - FOLDED_CONTROL_WEIGHT) * openFraction
+            }
+            isFoldedPosture -> FOLDED_CONTROL_WEIGHT
+            else -> flatControlWeight
+        }
         val displayWeight = when {
-            posture == POSTURE_TABLETOP || posture == POSTURE_BOOK -> FOLDED_DISPLAY_WEIGHT
+            isFoldedPosture && controlWeight > 0f -> 100f - controlWeight
             controlWeight == 0f -> COMPACT_DISPLAY_WEIGHT
             orientation == Configuration.ORIENTATION_PORTRAIT -> PORTRAIT_DISPLAY_WEIGHT
             else -> WIDE_DISPLAY_WEIGHT
