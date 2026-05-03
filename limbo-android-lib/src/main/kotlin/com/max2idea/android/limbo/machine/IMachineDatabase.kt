@@ -16,17 +16,17 @@ Copyright (C) Max Kastanas 2012
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
  */
-package com.max2idea.android.limbo.machine;
+package com.max2idea.android.limbo.machine
 
-import java.util.ArrayList;
+import java.util.ArrayList
 
-/** A DAO interface for saving user defined machines. This could be anything but for Android we
- * prefer an SQLite Helpers
-  */
-public interface IMachineDatabase {
-    Machine getMachine(String value);
-    void updateMachineFieldAsync(Machine machine, MachineProperty property, String value);
-    int insertMachine(Machine machine);
-    ArrayList<String> getMachineNames();
-    boolean deleteMachine(Machine machine);
+/**
+ * DAO interface for saving user defined machines.
+ */
+interface IMachineDatabase {
+    fun getMachine(value: String?): Machine?
+    fun updateMachineFieldAsync(machine: Machine?, property: MachineProperty?, value: String?)
+    fun insertMachine(machine: Machine?): Int
+    fun getMachineNames(): ArrayList<String>
+    fun deleteMachine(machine: Machine?): Boolean
 }
