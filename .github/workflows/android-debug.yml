@@ -39,6 +39,9 @@ jobs:
       - name: Make Gradle executable
         run: chmod +x ./gradlew
 
+      - name: Check shell helpers
+        run: bash -n tools/fetch-qemu-11.sh tools/configure-qemu-11-android.sh
+
       - name: Run lint and debug builds
         run: >
           ./gradlew
