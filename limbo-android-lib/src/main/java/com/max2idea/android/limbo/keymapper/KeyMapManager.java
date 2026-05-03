@@ -19,7 +19,6 @@ Copyright (C) Max Kastanas 2012
 package com.max2idea.android.limbo.keymapper;
 
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.os.Handler;
@@ -38,6 +37,9 @@ import android.widget.ListView;
 import android.widget.RelativeLayout;
 import android.widget.SimpleAdapter;
 
+import androidx.appcompat.app.AlertDialog;
+
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.limbo.emu.lib.R;
 import com.max2idea.android.limbo.keyboard.KeyboardUtils;
 import com.max2idea.android.limbo.main.Config;
@@ -64,7 +66,7 @@ import java.util.Set;
  */
 public class KeyMapManager {
     private static final String TAG = "KeyMapManager";
-    private static final String BUILT_IN_FULL_KEYBOARD_NAME = "Full Keyboard (F1-F12)";
+    private static final String BUILT_IN_FULL_KEYBOARD_NAME = "Full Desktop Keyboard (F1-F12 + Numpad)";
 
     private final Activity activity;
     private final View view;
@@ -315,7 +317,7 @@ public class KeyMapManager {
         if(keyMapper == null)
             return;
         final AlertDialog alertDialog;
-        alertDialog = new AlertDialog.Builder(activity).create();
+        alertDialog = new MaterialAlertDialogBuilder(activity).create();
         alertDialog.setTitle(activity.getString(R.string.KeyMapper));
         alertDialog.setMessage(activity.getString(R.string.DeleteKeyMapper));
         alertDialog.setButton(DialogInterface.BUTTON_POSITIVE, activity.getString(R.string.Delete),
@@ -366,7 +368,7 @@ public class KeyMapManager {
 
     private void promptAdvancedKey() {
 
-        AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(activity);
+        MaterialAlertDialogBuilder alertDialogBuilder = new MaterialAlertDialogBuilder(activity);
         alertDialogBuilder.setTitle(R.string.SpecialKeysButtons);
         final CharSequence[] items = new CharSequence[]{"Left Ctrl", "Right Ctrl", "Left Alt", "Right Alt",
                 "Left Shift", "Right Shift", "Fn", "Mouse Btn Left", "Mouse Btn Middle", "Mouse Btn Right"};
@@ -418,7 +420,7 @@ public class KeyMapManager {
 
     public void promptKeyMapperName() {
         final AlertDialog alertDialog;
-        alertDialog = new AlertDialog.Builder(activity).create();
+        alertDialog = new MaterialAlertDialogBuilder(activity).create();
         alertDialog.setTitle(activity.getString(R.string.KeyMapperName));
         final EditText keyMapperName = new EditText(activity);
         keyMapperName.setText("");
@@ -544,43 +546,56 @@ public class KeyMapManager {
     }
 
     private KeyMapper createBuiltInFullKeyboard() {
-        KeyMapper mapper = new KeyMapper(BUILT_IN_FULL_KEYBOARD_NAME, 7, 14);
+        KeyMapper mapper = new KeyMapper(BUILT_IN_FULL_KEYBOARD_NAME, 8, 16);
         int[][] keys = new int[][]{
                 {KeyEvent.KEYCODE_ESCAPE, KeyEvent.KEYCODE_F1, KeyEvent.KEYCODE_F2,
                         KeyEvent.KEYCODE_F3, KeyEvent.KEYCODE_F4, KeyEvent.KEYCODE_F5,
                         KeyEvent.KEYCODE_F6, KeyEvent.KEYCODE_F7, KeyEvent.KEYCODE_F8,
                         KeyEvent.KEYCODE_F9, KeyEvent.KEYCODE_F10, KeyEvent.KEYCODE_F11,
-                        KeyEvent.KEYCODE_F12, KeyEvent.KEYCODE_SYSRQ},
+                        KeyEvent.KEYCODE_F12, KeyEvent.KEYCODE_SYSRQ, KeyEvent.KEYCODE_SCROLL_LOCK,
+                        KeyEvent.KEYCODE_BREAK},
                 {KeyEvent.KEYCODE_GRAVE, KeyEvent.KEYCODE_1, KeyEvent.KEYCODE_2,
                         KeyEvent.KEYCODE_3, KeyEvent.KEYCODE_4, KeyEvent.KEYCODE_5,
                         KeyEvent.KEYCODE_6, KeyEvent.KEYCODE_7, KeyEvent.KEYCODE_8,
                         KeyEvent.KEYCODE_9, KeyEvent.KEYCODE_0, KeyEvent.KEYCODE_MINUS,
-                        KeyEvent.KEYCODE_EQUALS, KeyEvent.KEYCODE_DEL},
+                        KeyEvent.KEYCODE_EQUALS, KeyEvent.KEYCODE_DEL, KeyEvent.KEYCODE_NUM_LOCK,
+                        KeyEvent.KEYCODE_NUMPAD_DIVIDE},
                 {KeyEvent.KEYCODE_TAB, KeyEvent.KEYCODE_Q, KeyEvent.KEYCODE_W,
                         KeyEvent.KEYCODE_E, KeyEvent.KEYCODE_R, KeyEvent.KEYCODE_T,
                         KeyEvent.KEYCODE_Y, KeyEvent.KEYCODE_U, KeyEvent.KEYCODE_I,
                         KeyEvent.KEYCODE_O, KeyEvent.KEYCODE_P, KeyEvent.KEYCODE_LEFT_BRACKET,
-                        KeyEvent.KEYCODE_RIGHT_BRACKET, KeyEvent.KEYCODE_BACKSLASH},
+                        KeyEvent.KEYCODE_RIGHT_BRACKET, KeyEvent.KEYCODE_BACKSLASH, KeyEvent.KEYCODE_NUMPAD_MULTIPLY,
+                        KeyEvent.KEYCODE_NUMPAD_SUBTRACT},
                 {KeyEvent.KEYCODE_CTRL_LEFT, KeyEvent.KEYCODE_A, KeyEvent.KEYCODE_S,
                         KeyEvent.KEYCODE_D, KeyEvent.KEYCODE_F, KeyEvent.KEYCODE_G,
                         KeyEvent.KEYCODE_H, KeyEvent.KEYCODE_J, KeyEvent.KEYCODE_K,
                         KeyEvent.KEYCODE_L, KeyEvent.KEYCODE_SEMICOLON, KeyEvent.KEYCODE_APOSTROPHE,
-                        KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_FORWARD_DEL},
+                        KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_FORWARD_DEL, KeyEvent.KEYCODE_NUMPAD_7,
+                        KeyEvent.KEYCODE_NUMPAD_8},
                 {KeyEvent.KEYCODE_SHIFT_LEFT, KeyEvent.KEYCODE_Z, KeyEvent.KEYCODE_X,
                         KeyEvent.KEYCODE_C, KeyEvent.KEYCODE_V, KeyEvent.KEYCODE_B,
                         KeyEvent.KEYCODE_N, KeyEvent.KEYCODE_M, KeyEvent.KEYCODE_COMMA,
                         KeyEvent.KEYCODE_PERIOD, KeyEvent.KEYCODE_SLASH, KeyEvent.KEYCODE_SHIFT_RIGHT,
-                        KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_MOVE_HOME},
+                        KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_MOVE_HOME, KeyEvent.KEYCODE_NUMPAD_9,
+                        KeyEvent.KEYCODE_NUMPAD_ADD},
                 {KeyEvent.KEYCODE_ALT_LEFT, KeyEvent.KEYCODE_META_LEFT, KeyEvent.KEYCODE_SPACE,
                         KeyEvent.KEYCODE_SPACE, KeyEvent.KEYCODE_SPACE, KeyEvent.KEYCODE_SPACE,
                         KeyEvent.KEYCODE_SPACE, KeyEvent.KEYCODE_SPACE, KeyEvent.KEYCODE_MENU,
                         KeyEvent.KEYCODE_ALT_RIGHT, KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_DOWN,
-                        KeyEvent.KEYCODE_DPAD_RIGHT, KeyEvent.KEYCODE_MOVE_END},
+                        KeyEvent.KEYCODE_DPAD_RIGHT, KeyEvent.KEYCODE_MOVE_END, KeyEvent.KEYCODE_NUMPAD_4,
+                        KeyEvent.KEYCODE_NUMPAD_5},
                 {KeyEvent.KEYCODE_INSERT, KeyEvent.KEYCODE_FORWARD_DEL, KeyEvent.KEYCODE_MOVE_HOME,
                         KeyEvent.KEYCODE_MOVE_END, KeyEvent.KEYCODE_PAGE_UP, KeyEvent.KEYCODE_PAGE_DOWN,
                         KeyEvent.KEYCODE_BREAK, KeyEvent.KEYCODE_SYSRQ, KeyEvent.KEYCODE_SCROLL_LOCK,
                         KeyEvent.KEYCODE_NUM_LOCK, KeyEvent.KEYCODE_CTRL_RIGHT, KeyEvent.KEYCODE_FUNCTION,
-                        KeyEvent.KEYCODE_TAB, KeyEvent.KEYCODE_ENTER}
+                        KeyEvent.KEYCODE_TAB, KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_NUMPAD_6,
+                        KeyEvent.KEYCODE_NUMPAD_ENTER},
+                {KeyEvent.KEYCODE_ESCAPE, KeyEvent.KEYCODE_CTRL_LEFT, KeyEvent.KEYCODE_ALT_LEFT,
+                        KeyEvent.KEYCODE_META_LEFT, KeyEvent.KEYCODE_SPACE, KeyEvent.KEYCODE_SPACE,
+                        KeyEvent.KEYCODE_SPACE, KeyEvent.KEYCODE_SPACE, KeyEvent.KEYCODE_ALT_RIGHT,
+                        KeyEvent.KEYCODE_CTRL_RIGHT, KeyEvent.KEYCODE_PAGE_UP, KeyEvent.KEYCODE_PAGE_DOWN,
+                        KeyEvent.KEYCODE_NUMPAD_1, KeyEvent.KEYCODE_NUMPAD_2, KeyEvent.KEYCODE_NUMPAD_3,
+                        KeyEvent.KEYCODE_NUMPAD_0}
         };
         for (int row = 0; row < keys.length; row++) {
             for (int col = 0; col < keys[row].length; col++) {
