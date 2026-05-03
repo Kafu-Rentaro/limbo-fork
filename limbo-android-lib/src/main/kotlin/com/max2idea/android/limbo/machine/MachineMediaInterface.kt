@@ -16,8 +16,10 @@ Copyright (C) Max Kastanas 2012
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
  */
-package com.max2idea.android.limbo.machine;
+package com.max2idea.android.limbo.machine
 
-public enum MachineMediaInterface {
-    IDE, SCSI, VIRTIO
+enum class MachineMediaInterface {
+    IDE,
+    SCSI,
+    VIRTIO,
 }
