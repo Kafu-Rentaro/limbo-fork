@@ -77,6 +77,7 @@ object ArchDefinitions {
         if (LimboApplication.arch == Config.Arch.x86 || LimboApplication.arch == Config.Arch.x86_64) {
             vgaValues.add("cirrus")
             vgaValues.add("vmware")
+            vgaValues.add("VGA,vgamem_mb=64")
             vgaValues.add("virtio-vga")
             vgaValues.add("virtio-vga-gl")
             vgaValues.add("virtio-gpu-pci")

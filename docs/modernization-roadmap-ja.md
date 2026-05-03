@@ -26,6 +26,8 @@
 - QEMU 11.0.0 用の GPG signature 検証つき取得 script と version config stub を追加した。
 - full keyboard preset を操作領域いっぱいに描画し、上下分割/tabletop/左右分割/book posture の比率と連動するようにした。
 - Windows 98/Me、2000/XP、7、10、11 + 3D 向けの x86 guest profile 適用 UI を追加した。
+- Android debug build/lint を GitHub Actions で実行する CI を追加した。
+- Windows 98/Me 向けに `VGA,vgamem_mb=64` の 3D-ready profile を追加し、QEMU 起動時に `-device VGA,vgamem_mb=64` として渡せるようにした。
 
 ## 目標バージョン
 
@@ -131,7 +133,7 @@ Android ABI はどちらも `arm64-v8a` になるため、配布 ABI は同じ�
 
 - Windows 98/2000 は virtio-gpu 用の実用的な公式 guest driver が期待できない。
 - Windows 98 の 3D は、QEMU 11 の virtio-gpu だけでは実現できない可能性が高い。
-- Windows 98 で 3D を狙う場合は、3dfx/Voodoo 系エミュレーション、古い Direct3D 対応仮想 GPU、または guest 内 wrapper などを別研究トラックにする。
+- Windows 98 で 3D を狙う場合は、BOXV9x/SoftGPU/qemu-3dfx などの guest driver/wrapper と組み合わせる前提で、legacy VGA 64MB profile から検証する。
 
 完了条件:
 
@@ -197,7 +199,7 @@ Windows 98/2000 から Windows 11 まで単一 preset で最適化するのは�
 
 - Windows 98:
   - i440fx/PIIX、IDE、SB16/AC97、Cirrus/std VGA から開始。
-  - 3D は別研究トラック。
+  - 3D-ready profile は `-device VGA,vgamem_mb=64` + SDL を使い、guest 側 driver/wrapper の導入を前提にする。
 - Windows 2000/XP:
   - IDE/e1000/AC97/VMware SVGA などを検証。
 - Windows 7:

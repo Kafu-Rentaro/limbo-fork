@@ -467,7 +467,7 @@ private String getQemuLibrary() {
             String vga = getMachine().getVga();
             if (vga.equals("Default")) {
                 //do nothing
-            } else if (isVirtioGpu(vga)) {
+            } else if (isDeviceBackedGpu(vga)) {
                 if (isVirglGpu(vga) && !MachineController.getInstance().isVNCEnabled()) {
                     paramsList.add("-display");
                     paramsList.add("sdl,gl=on");
@@ -483,8 +483,12 @@ private String getQemuLibrary() {
         }
     }
 
-    private boolean isVirtioGpu(String vga) {
-        return vga.startsWith("virtio-gpu") || vga.startsWith("virtio-vga");
+    private boolean isDeviceBackedGpu(String vga) {
+        return vga.startsWith("virtio-gpu")
+                || vga.startsWith("virtio-vga")
+                || vga.startsWith("VGA")
+                || vga.startsWith("isa-vga")
+                || vga.startsWith("secondary-vga");
     }
 
     private boolean isVirglGpu(String vga) {

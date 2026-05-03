@@ -27,6 +27,23 @@ object GuestOsProfileManager {
             disableTsc = true,
         ),
         GuestOsProfile(
+            title = "Windows 98 / Me + 3D ready",
+            description = "VGA 64MB, SDL, BOXV9x/SoftGPU/qemu-3dfx path",
+            machineType = "pc,hpet=off,usb=off",
+            cpu = "pentium2",
+            memoryMb = 256,
+            vga = "VGA,vgamem_mb=64",
+            soundCard = "ac97",
+            network = "User",
+            nic = "pcnet",
+            mouse = "ps2",
+            hdaInterface = "ide",
+            cdInterface = "ide",
+            disableTsc = true,
+            ui = "SDL",
+            extraParams = "-rtc base=localtime",
+        ),
+        GuestOsProfile(
             title = "Windows 2000 / XP",
             description = "i440fx, IDE, AC97, VMware SVGA",
             machineType = "pc",
@@ -137,6 +154,7 @@ object GuestOsProfileManager {
         val cdInterface: String,
         val disableTsc: Boolean,
         val ui: String? = null,
+        val extraParams: String? = null,
     ) {
         fun applyTo(viewListener: ViewListener) {
             viewListener.onFieldChange(MachineProperty.MACHINETYPE, machineType)
@@ -159,6 +177,9 @@ object GuestOsProfileManager {
             )
             if (ui != null && Config.enable_SDL) {
                 viewListener.onFieldChange(MachineProperty.UI, ui)
+            }
+            if (extraParams != null) {
+                viewListener.onFieldChange(MachineProperty.EXTRA_PARAMS, extraParams)
             }
         }
     }
