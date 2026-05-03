@@ -180,7 +180,7 @@ private String getQemuLibrary() {
 
     private void validateGraphicsOptions(Context context) {
         String vga = getMachine().getVga();
-        if (GraphicsCapabilities.isVirglGpu(vga) && MachineController.getInstance().isVNCEnabled()) {
+        if (GraphicsCapabilities.requiresSdlDisplay(vga) && MachineController.getInstance().isVNCEnabled()) {
             throw new IllegalStateException(context.getString(R.string.virgl_requires_sdl_runtime));
         }
     }
@@ -594,9 +594,10 @@ private String getQemuLibrary() {
             if (vga.equals("Default")) {
                 //do nothing
             } else if (GraphicsCapabilities.isDeviceBackedGpu(vga)) {
-                if (GraphicsCapabilities.isVirglGpu(vga) && !MachineController.getInstance().isVNCEnabled()) {
+                String displayBackend = GraphicsCapabilities.getDisplayBackend(vga);
+                if (displayBackend != null && !MachineController.getInstance().isVNCEnabled()) {
                     paramsList.add("-display");
-                    paramsList.add("sdl,gl=on");
+                    paramsList.add(displayBackend);
                 }
                 paramsList.add("-device");
                 paramsList.add(vga);

@@ -3,7 +3,7 @@ package com.max2idea.android.limbo.main
 import android.app.Activity
 import android.content.DialogInterface
 import android.widget.ArrayAdapter
-import androidx.appcompat.app.AlertDialog
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.limbo.emu.lib.R
 import com.max2idea.android.limbo.machine.Machine
 import com.max2idea.android.limbo.machine.MachineProperty
@@ -102,12 +102,12 @@ object GuestOsProfileManager {
         ),
         GuestOsProfile(
             title = "Windows 11 + 3D",
-            description = "q35, virtio, virgl/SDL GL path",
+            description = "q35, virtio, QEMU 11 virgl/SDL GL path",
             machineType = "q35",
             cpu = "qemu64",
             cpuCores = 4,
             memoryMb = 4096,
-            vga = GraphicsCapabilities.VIRTIO_GPU_PCI_VIRGL,
+            vga = GraphicsCapabilities.VIRTIO_GPU_GL_PCI,
             soundCard = "hda",
             network = "User",
             nic = "virtio",
@@ -136,7 +136,7 @@ object GuestOsProfileManager {
 
         val labels = x86WindowsProfiles.map { "${it.title}\n${it.description}" }
         val adapter = ArrayAdapter(activity, android.R.layout.simple_list_item_1, labels)
-        AlertDialog.Builder(activity)
+        MaterialAlertDialogBuilder(activity)
             .setTitle(R.string.guest_profile)
             .setAdapter(adapter) { dialog: DialogInterface, which: Int ->
                 val profile = x86WindowsProfiles[which]
@@ -148,7 +148,7 @@ object GuestOsProfileManager {
     }
 
     private fun confirmApply(activity: Activity, profile: GuestOsProfile, viewListener: ViewListener) {
-        AlertDialog.Builder(activity)
+        MaterialAlertDialogBuilder(activity)
             .setTitle(profile.title)
             .setMessage(profile.summary())
             .setPositiveButton(R.string.Apply) { dialog: DialogInterface, _: Int ->

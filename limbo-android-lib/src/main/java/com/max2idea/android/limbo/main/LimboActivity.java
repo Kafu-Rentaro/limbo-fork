@@ -1316,8 +1316,7 @@ public class LimboActivity extends AppCompatActivity
 
     protected void showOperatingSystems() {
         if (!Config.osImages.isEmpty()) {
-            LinksManager manager = new LinksManager(this);
-            manager.show();
+            LinksManager.show(this);
         }
     }
 

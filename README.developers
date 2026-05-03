@@ -63,6 +63,9 @@ https://github.com/limboemu/limbo
     ./tools/configure-qemu-11-android.sh --host arm64-v8a --guest x86_64-softmmu
     # ARMv9-tuned host build plus virgl/OpenGL flags:
     ./tools/configure-qemu-11-android.sh --host arm64-v8a --guest x86_64-softmmu --armv9 --virgl
+    # UI profiles prefer QEMU's current virtio-gpu GL device spelling
+    # (virtio-gpu-gl-pci / virtio-vga-gl). The older
+    # virtio-gpu-pci,virgl=on entry remains available for compatibility.
     # To inspect the generated environment and configure command without running configure:
     ./tools/configure-qemu-11-android.sh --host arm64-v8a --guest x86_64-softmmu --armv9 --virgl --dry-run
     # If NDK prebuilt host-tag auto-detection does not match your environment:
