@@ -64,6 +64,7 @@ import java.util.Set;
  */
 public class KeyMapManager {
     private static final String TAG = "KeyMapManager";
+    private static final String BUILT_IN_FULL_KEYBOARD_NAME = "Full Keyboard (F1-F12)";
 
     private final Activity activity;
     private final View view;
@@ -516,13 +517,81 @@ public class KeyMapManager {
                 }
             }
         }
+        boolean addedBuiltIn = addBuiltInFullKeyboardIfMissing();
         Collections.sort(keyMappers, new Comparator<HashMap<String, Object>>() {
             @Override
             public int compare(HashMap<String, Object> h1, HashMap<String, Object> h2) {
                 return ((String) h1.get("keymapper_name")).compareTo((String) h2.get("keymapper_name"));
             }
         });
+        if (addedBuiltIn)
+            saveKeyMappers();
         keyMapperAdapter.notifyDataSetChanged();
+    }
+
+    private boolean addBuiltInFullKeyboardIfMissing() {
+        for (HashMap<String, Object> map : keyMappers) {
+            if (BUILT_IN_FULL_KEYBOARD_NAME.equals(map.get("keymapper_name"))) {
+                return false;
+            }
+        }
+        KeyMapper mapper = createBuiltInFullKeyboard();
+        HashMap<String, Object> map = new HashMap<>();
+        map.put("keymapper_name", mapper.name);
+        map.put("key_mapper", mapper);
+        keyMappers.add(map);
+        return true;
+    }
+
+    private KeyMapper createBuiltInFullKeyboard() {
+        KeyMapper mapper = new KeyMapper(BUILT_IN_FULL_KEYBOARD_NAME, 7, 14);
+        int[][] keys = new int[][]{
+                {KeyEvent.KEYCODE_ESCAPE, KeyEvent.KEYCODE_F1, KeyEvent.KEYCODE_F2,
+                        KeyEvent.KEYCODE_F3, KeyEvent.KEYCODE_F4, KeyEvent.KEYCODE_F5,
+                        KeyEvent.KEYCODE_F6, KeyEvent.KEYCODE_F7, KeyEvent.KEYCODE_F8,
+                        KeyEvent.KEYCODE_F9, KeyEvent.KEYCODE_F10, KeyEvent.KEYCODE_F11,
+                        KeyEvent.KEYCODE_F12, KeyEvent.KEYCODE_SYSRQ},
+                {KeyEvent.KEYCODE_GRAVE, KeyEvent.KEYCODE_1, KeyEvent.KEYCODE_2,
+                        KeyEvent.KEYCODE_3, KeyEvent.KEYCODE_4, KeyEvent.KEYCODE_5,
+                        KeyEvent.KEYCODE_6, KeyEvent.KEYCODE_7, KeyEvent.KEYCODE_8,
+                        KeyEvent.KEYCODE_9, KeyEvent.KEYCODE_0, KeyEvent.KEYCODE_MINUS,
+                        KeyEvent.KEYCODE_EQUALS, KeyEvent.KEYCODE_DEL},
+                {KeyEvent.KEYCODE_TAB, KeyEvent.KEYCODE_Q, KeyEvent.KEYCODE_W,
+                        KeyEvent.KEYCODE_E, KeyEvent.KEYCODE_R, KeyEvent.KEYCODE_T,
+                        KeyEvent.KEYCODE_Y, KeyEvent.KEYCODE_U, KeyEvent.KEYCODE_I,
+                        KeyEvent.KEYCODE_O, KeyEvent.KEYCODE_P, KeyEvent.KEYCODE_LEFT_BRACKET,
+                        KeyEvent.KEYCODE_RIGHT_BRACKET, KeyEvent.KEYCODE_BACKSLASH},
+                {KeyEvent.KEYCODE_CTRL_LEFT, KeyEvent.KEYCODE_A, KeyEvent.KEYCODE_S,
+                        KeyEvent.KEYCODE_D, KeyEvent.KEYCODE_F, KeyEvent.KEYCODE_G,
+                        KeyEvent.KEYCODE_H, KeyEvent.KEYCODE_J, KeyEvent.KEYCODE_K,
+                        KeyEvent.KEYCODE_L, KeyEvent.KEYCODE_SEMICOLON, KeyEvent.KEYCODE_APOSTROPHE,
+                        KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_FORWARD_DEL},
+                {KeyEvent.KEYCODE_SHIFT_LEFT, KeyEvent.KEYCODE_Z, KeyEvent.KEYCODE_X,
+                        KeyEvent.KEYCODE_C, KeyEvent.KEYCODE_V, KeyEvent.KEYCODE_B,
+                        KeyEvent.KEYCODE_N, KeyEvent.KEYCODE_M, KeyEvent.KEYCODE_COMMA,
+                        KeyEvent.KEYCODE_PERIOD, KeyEvent.KEYCODE_SLASH, KeyEvent.KEYCODE_SHIFT_RIGHT,
+                        KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_MOVE_HOME},
+                {KeyEvent.KEYCODE_ALT_LEFT, KeyEvent.KEYCODE_META_LEFT, KeyEvent.KEYCODE_SPACE,
+                        KeyEvent.KEYCODE_SPACE, KeyEvent.KEYCODE_SPACE, KeyEvent.KEYCODE_SPACE,
+                        KeyEvent.KEYCODE_SPACE, KeyEvent.KEYCODE_SPACE, KeyEvent.KEYCODE_MENU,
+                        KeyEvent.KEYCODE_ALT_RIGHT, KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_DOWN,
+                        KeyEvent.KEYCODE_DPAD_RIGHT, KeyEvent.KEYCODE_MOVE_END},
+                {KeyEvent.KEYCODE_INSERT, KeyEvent.KEYCODE_FORWARD_DEL, KeyEvent.KEYCODE_MOVE_HOME,
+                        KeyEvent.KEYCODE_MOVE_END, KeyEvent.KEYCODE_PAGE_UP, KeyEvent.KEYCODE_PAGE_DOWN,
+                        KeyEvent.KEYCODE_BREAK, KeyEvent.KEYCODE_SYSRQ, KeyEvent.KEYCODE_SCROLL_LOCK,
+                        KeyEvent.KEYCODE_NUM_LOCK, KeyEvent.KEYCODE_CTRL_RIGHT, KeyEvent.KEYCODE_FUNCTION,
+                        KeyEvent.KEYCODE_TAB, KeyEvent.KEYCODE_ENTER}
+        };
+        for (int row = 0; row < keys.length; row++) {
+            for (int col = 0; col < keys[row].length; col++) {
+                addKey(mapper, row, col, keys[row][col]);
+            }
+        }
+        return mapper;
+    }
+
+    private void addKey(KeyMapper mapper, int row, int col, int keyCode) {
+        mapper.mapping[row][col].addKeyCode(keyCode, new KeyEvent(KeyEvent.ACTION_DOWN, keyCode));
     }
 
     public void saveKeyMappers() {
@@ -547,6 +616,10 @@ public class KeyMapManager {
         } else {
             return true;
         }
+    }
+
+    boolean isFullKeyboardActive() {
+        return keyMapper != null && BUILT_IN_FULL_KEYBOARD_NAME.equals(keyMapper.name);
     }
 
     public boolean isEditMode() {

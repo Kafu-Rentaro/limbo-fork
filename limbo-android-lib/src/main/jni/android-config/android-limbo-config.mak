@@ -10,7 +10,7 @@ NDK_ROOT ?= /home/dev/tools/ndk/android-ndk-r23b
 USE_GCC?=false
 
 ### the ndk api should be the same as the minSdkVersion in your AndroidManifest.xml 
-NDK_PLATFORM_API=21
+NDK_PLATFORM_API=23
 
 # Set to true if you use platform-21 or above
 USE_NDK_PLATFORM21 ?= true
@@ -43,16 +43,24 @@ BUILD_THREADS ?= 3
 # values: armeabi-v7a, arm64-v8a, x86, x86_64
 BUILD_HOST?=arm64-v8a
 
+# Keep the packaged Android ABI as arm64-v8a while allowing an ARMv9-tuned
+# native build for devices/toolchains that support it.
+USE_ARMV9 ?= false
+
 # GUEST_ARCH is the Emulator type
 # values: x86_64-softmmu,aarch64-softmmu,sparc64-softmmu,ppc64-softmmu
 BUILD_GUEST?=x86_64-softmmu
 
 # QEMU Version
-# values: 2.9.1, 5.1.0
+# values: 2.9.1, 5.1.0, 11.0.0
 USE_QEMU_VERSION ?= 5.1.0
 
 # If you want to use SDL interface
 USE_SDL ?= true
+
+# Enable OpenGL/virglrenderer display paths in QEMU. This requires native
+# renderer dependencies to be available in the JNI tree.
+USE_VIRGL ?= false
 
 # If you want to use SDL Audio with Android AudioTrack
 USE_SDL_AUDIO ?= true

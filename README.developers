@@ -52,6 +52,13 @@ https://github.com/limboemu/limbo
     ##### Get QEMU
     # download link:  http://download.qemu-project.org/qemu-x.x.x.tar.xz 
     # Current versions supported by limbo: 5.1.0 and 2.9.1
+    # Experimental modernization target: 11.0.0
+    # To fetch the QEMU 11.0.0 source tree into jni/qemu from the repo root:
+    ./tools/fetch-qemu-11.sh
+    # If jni/qemu already exists and you intentionally want to replace it:
+    ./tools/fetch-qemu-11.sh --force
+    # The script verifies the official release signature when gpg is installed.
+    # Use --skip-verify only for local experiments.
     # example for version 5.1.0:
     wget http://download.qemu-project.org/qemu-5.1.0.tar.xz -P /tmp/
     tar -xJf /tmp/qemu-5.1.0.tar.xz
@@ -172,6 +179,13 @@ https://github.com/limboemu/limbo
             export BUILD_GUEST=x86_64-softmmu
             make limbo
 
+        1b) To build an ARMv9-tuned native binary for ARM64 phones with a
+            compatible NDK/clang:
+            export BUILD_HOST=arm64-v8a
+            export USE_ARMV9=true
+            export BUILD_GUEST=x86_64-softmmu
+            make limbo
+
         2) To build Limbo x86 Emulator for ARM phones type:
             export BUILD_HOST=armeabi-v7a
             export BUILD_GUEST=x86_64-softmmu
@@ -212,6 +226,16 @@ https://github.com/limboemu/limbo
 			export USE_AAUDIO=false
 
 		For more options see android-limbo-config.mak
+
+        Experimental 3D/virgl builds:
+            export USE_VIRGL=true
+            export BUILD_HOST=arm64-v8a
+            export BUILD_GUEST=x86_64-softmmu
+            make limbo
+
+        This only enables the native QEMU OpenGL/virgl build flags. The JNI
+        tree must also provide the renderer dependencies required by the QEMU
+        version being built.
 		
        You should now have the following libraries in these 2 folders:
 

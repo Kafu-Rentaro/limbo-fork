@@ -464,18 +464,31 @@ private String getQemuLibrary() {
 
     private void addGraphicsOptions(ArrayList<String> paramsList) {
         if (getMachine().getVga() != null) {
-            if (getMachine().getVga().equals("Default")) {
+            String vga = getMachine().getVga();
+            if (vga.equals("Default")) {
                 //do nothing
-            } else if (getMachine().getVga().equals("virtio-gpu-pci")) {
+            } else if (isVirtioGpu(vga)) {
+                if (isVirglGpu(vga) && !MachineController.getInstance().isVNCEnabled()) {
+                    paramsList.add("-display");
+                    paramsList.add("sdl,gl=on");
+                }
                 paramsList.add("-device");
-                paramsList.add(getMachine().getVga());
-            } else if (getMachine().getVga().equals("nographic")) {
+                paramsList.add(vga);
+            } else if (vga.equals("nographic")) {
                 paramsList.add("-nographic");
             } else {
                 paramsList.add("-vga");
-                paramsList.add(getMachine().getVga());
+                paramsList.add(vga);
             }
         }
+    }
+
+    private boolean isVirtioGpu(String vga) {
+        return vga.startsWith("virtio-gpu") || vga.startsWith("virtio-vga");
+    }
+
+    private boolean isVirglGpu(String vga) {
+        return vga.contains("virgl=on") || vga.endsWith("-gl");
     }
 
     private void addBootOptions(ArrayList<String> paramsList) {
@@ -1070,4 +1083,3 @@ private String getQemuLibrary() {
         return LimboSettingsManager.getEnableExternalQMP(LimboApplication.getInstance());
     }
 }
-

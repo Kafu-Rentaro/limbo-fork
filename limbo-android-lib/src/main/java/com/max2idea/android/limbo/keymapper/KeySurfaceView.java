@@ -54,6 +54,9 @@ public class KeySurfaceView extends SurfaceView implements SurfaceHolder.Callbac
     private static final String TAG = "KeySurfaceView";
     private static final int KEY_CELL_PADDING = 4;
     private static final long KEY_REPEAT_MS = 100;
+    private static final float DEFAULT_CONTROL_AREA_FRACTION = 0.5f;
+    private static final float MIN_CONTROL_AREA_FRACTION = 0.2f;
+    private static final float MAX_CONTROL_AREA_FRACTION = 0.65f;
     private final Object drawLock = new Object();
 
     public KeyMapper.KeyMapping[][] mapping;
@@ -71,8 +74,14 @@ public class KeySurfaceView extends SurfaceView implements SurfaceHolder.Callbac
     private SurfaceHolder surfaceHolder;
     private KeyMapManager keyMapManager;
     private boolean surfaceCreated;
+    private float controlAreaFraction = DEFAULT_CONTROL_AREA_FRACTION;
+    private boolean controlAreaOnRight;
+    private int buttonLayoutTop;
+    private int buttonLayoutLeft;
+    private int buttonLayoutWidth;
     private int buttonLayoutHeight;
-    private int buttonSize;
+    private int buttonWidth;
+    private int buttonHeight;
     private int minRowLeft = -1;
     private int minRowRight = -1;
     private int vertFontOffset;
@@ -134,7 +143,10 @@ public class KeySurfaceView extends SurfaceView implements SurfaceHolder.Callbac
         mPaintTextSmall.setFakeBoldText(true);
         mPaintTextSmall.setTypeface(Typeface.create(Typeface.MONOSPACE, Typeface.BOLD));
 
-        //offsets
+        updateTextMetrics();
+    }
+
+    private void updateTextMetrics() {
         Rect result = new Rect();
         mPaintText.getTextBounds("O", 0, 1, result);
         vertFontOffset = result.height();
@@ -196,6 +208,10 @@ public class KeySurfaceView extends SurfaceView implements SurfaceHolder.Callbac
         boolean keyPressed = false;
         if ((action == MotionEvent.ACTION_MOVE || action == MotionEvent.ACTION_UP) && prevKeyMapping == null)
             keyPressed = false;
+        else if (isWideKeyboardLayout()
+                && row < keyMapManager.keyMapper.rows && row >= 0
+                && col < keyMapManager.keyMapper.cols && col >= 0)
+            keyPressed = true;
         else if (((col < keyMapManager.keyMapper.cols / 2 && row > minRowLeft)
                 || (col >= keyMapManager.keyMapper.cols / 2 && row > minRowRight))
                 && row < keyMapManager.keyMapper.rows && row >= 0
@@ -207,17 +223,28 @@ public class KeySurfaceView extends SurfaceView implements SurfaceHolder.Callbac
 
     private int getRowFromEvent(MotionEvent event, int i) {
         int row = -1;
-        if (event.getY(i) - (getHeight() - buttonLayoutHeight) > 0)
-            row = (int) (event.getY(i) - (getHeight() - buttonLayoutHeight)) / buttonSize;
+        if (buttonHeight > 0 && event.getY(i) >= buttonLayoutTop)
+            row = (int) (event.getY(i) - buttonLayoutTop) / buttonHeight;
         return row;
     }
 
     private int getColumnFromEvent(MotionEvent event, int i) {
         int col = -1;
-        if (event.getX(i) > this.getWidth() - buttonLayoutHeight) {
-            col = (int) (event.getX(i) - (this.getWidth() - buttonLayoutHeight)) / buttonSize + keyMapManager.keyMapper.cols / 2;
-        } else if (event.getX(i) < buttonLayoutHeight) {
-            col = (int) event.getX(i) / buttonSize;
+        if (buttonWidth <= 0 || keyMapManager.keyMapper == null) {
+            return col;
+        }
+        if (isWideKeyboardLayout()) {
+            if (event.getX(i) >= buttonLayoutLeft && event.getX(i) <= buttonLayoutLeft + buttonLayoutWidth) {
+                col = (int) (event.getX(i) - buttonLayoutLeft) / buttonWidth;
+                col = Math.min(col, keyMapManager.keyMapper.cols - 1);
+            }
+        } else if (event.getX(i) >= this.getWidth() - buttonLayoutWidth) {
+            col = (int) (event.getX(i) - (this.getWidth() - buttonLayoutWidth)) / buttonWidth
+                    + keyMapManager.keyMapper.cols / 2;
+            col = Math.min(col, keyMapManager.keyMapper.cols - 1);
+        } else if (event.getX(i) >= buttonLayoutLeft && event.getX(i) < buttonLayoutLeft + buttonLayoutWidth) {
+            col = (int) (event.getX(i) - buttonLayoutLeft) / buttonWidth;
+            col = Math.min(col, keyMapManager.keyMapper.cols / 2 - 1);
         }
         return col;
     }
@@ -402,15 +429,37 @@ public class KeySurfaceView extends SurfaceView implements SurfaceHolder.Callbac
     public void updateDimensions() {
         int height = getHeight();
         int width = getWidth();
-        buttonLayoutHeight = 0;
-        if (height > width)
-            buttonLayoutHeight = width / 2;
-        else
-            buttonLayoutHeight = height / 2;
-        if (keyMapManager.keyMapper == null)
-            buttonSize = 1;
-        else
-            buttonSize = buttonLayoutHeight / keyMapManager.keyMapper.rows;
+        int controlAreaHeight = controlAreaOnRight ? height : Math.max(1, Math.round(height * controlAreaFraction));
+        int controlAreaWidth = controlAreaOnRight ? Math.max(1, Math.round(width * controlAreaFraction)) : width;
+        buttonLayoutTop = controlAreaOnRight ? 0 : Math.max(0, height - controlAreaHeight);
+        buttonLayoutLeft = controlAreaOnRight ? Math.max(0, width - controlAreaWidth) : 0;
+        buttonLayoutWidth = controlAreaWidth;
+        buttonLayoutHeight = controlAreaHeight;
+
+        if (keyMapManager.keyMapper == null) {
+            buttonWidth = 1;
+            buttonHeight = 1;
+        } else if (isWideKeyboardLayout()) {
+            buttonWidth = Math.max(1, buttonLayoutWidth / keyMapManager.keyMapper.cols);
+            buttonHeight = Math.max(1, buttonLayoutHeight / keyMapManager.keyMapper.rows);
+        } else if (controlAreaOnRight) {
+            buttonLayoutWidth = Math.max(1, controlAreaWidth / 2);
+            buttonLayoutHeight = Math.min(height, controlAreaWidth / 2);
+            buttonLayoutTop = Math.max(0, height - buttonLayoutHeight);
+            buttonWidth = Math.max(1, buttonLayoutWidth / (keyMapManager.keyMapper.cols / 2));
+            buttonHeight = Math.max(1, buttonLayoutHeight / keyMapManager.keyMapper.rows);
+        } else {
+            buttonLayoutHeight = Math.min(controlAreaHeight, width / 2);
+            buttonLayoutTop = Math.max(0, height - buttonLayoutHeight);
+            buttonLayoutWidth = buttonLayoutHeight;
+            buttonWidth = Math.max(1, buttonLayoutWidth / (keyMapManager.keyMapper.cols / 2));
+            buttonHeight = Math.max(1, buttonLayoutHeight / keyMapManager.keyMapper.rows);
+        }
+
+        float primaryTextSize = Math.max(10f, Math.min(36f, Math.min(buttonWidth, buttonHeight) * 0.42f));
+        mPaintText.setTextSize(primaryTextSize);
+        mPaintTextSmall.setTextSize(Math.max(8f, primaryTextSize * 0.66f));
+        updateTextMetrics();
 
         minRowLeft = -1;
         minRowRight = -1;
@@ -485,9 +534,74 @@ public class KeySurfaceView extends SurfaceView implements SurfaceHolder.Callbac
         }
     }
 
+    public void setControlAreaFraction(float fraction) {
+        setControlArea(fraction, false);
+    }
+
+    public void setControlArea(float fraction, boolean onRight) {
+        if (fraction <= 0f) {
+            fraction = DEFAULT_CONTROL_AREA_FRACTION;
+        }
+        float clampedFraction = Math.max(MIN_CONTROL_AREA_FRACTION,
+                Math.min(MAX_CONTROL_AREA_FRACTION, fraction));
+        if (Math.abs(controlAreaFraction - clampedFraction) < 0.01f
+                && controlAreaOnRight == onRight) {
+            return;
+        }
+        controlAreaFraction = clampedFraction;
+        controlAreaOnRight = onRight;
+        updateDimensions();
+    }
+
+    private boolean isWideKeyboardLayout() {
+        return keyMapManager != null && keyMapManager.isFullKeyboardActive();
+    }
+
+    private int getKeyboardColumnsForBlock(int col) {
+        if (isWideKeyboardLayout()) {
+            return keyMapManager.keyMapper.cols;
+        }
+        return keyMapManager.keyMapper.cols / 2;
+    }
+
+    private int getKeyboardBlockLeft(int col) {
+        if (isWideKeyboardLayout() || col < keyMapManager.keyMapper.cols / 2) {
+            return buttonLayoutLeft;
+        }
+        return this.getWidth() - buttonLayoutWidth;
+    }
+
+    private int getLocalColumn(int col) {
+        if (isWideKeyboardLayout()) {
+            return col;
+        }
+        return col % (keyMapManager.keyMapper.cols / 2);
+    }
+
+    private int getCellLeft(int col) {
+        return getKeyboardBlockLeft(col) + getLocalColumn(col) * buttonWidth;
+    }
+
+    private int getCellRight(int col) {
+        int columns = getKeyboardColumnsForBlock(col);
+        if (getLocalColumn(col) == columns - 1) {
+            return getKeyboardBlockLeft(col) + buttonLayoutWidth;
+        }
+        return getCellLeft(col) + buttonWidth;
+    }
+
+    private int getCellTop(int row) {
+        return buttonLayoutTop + row * buttonHeight;
+    }
+
+    private int getCellBottom(int row) {
+        if (row == keyMapManager.keyMapper.rows - 1) {
+            return buttonLayoutTop + buttonLayoutHeight;
+        }
+        return getCellTop(row) + buttonHeight;
+    }
+
     private void drawButton(Canvas canvas, int row, int col, boolean isSelected, boolean repeat) {
-        int hOffset = col < keyMapManager.keyMapper.cols / 2 ? 0 : (this.getWidth() - buttonLayoutHeight);
-        int vOffset = this.getHeight() - buttonLayoutHeight;
         Paint mPaint;
         if (isSelected) {
             mPaint = repeat ? mPaintKeySelectedRepeat : mPaintKeySelected;
@@ -498,10 +612,10 @@ public class KeySurfaceView extends SurfaceView implements SurfaceHolder.Callbac
         if (mapping[row][col].getKeyCodes() != null && mapping[row][col].getMouseButtons() != null
                 && (mapping[row][col].getKeyCodes().size() > 0 || mapping[row][col].getMouseButtons().size() > 0
                 || keyMapManager.isEditMode())) {
-            canvas.drawRect((float) (hOffset + col % (keyMapManager.keyMapper.cols / 2) * buttonSize + KEY_CELL_PADDING),
-                    (float) (vOffset + row * buttonSize + KEY_CELL_PADDING),
-                    (float) (hOffset + (col % (keyMapManager.keyMapper.cols / 2) + 1) * buttonSize - KEY_CELL_PADDING),
-                    (float) (vOffset + (row + 1) * buttonSize - KEY_CELL_PADDING),
+            canvas.drawRect((float) (getCellLeft(col) + KEY_CELL_PADDING),
+                    (float) (getCellTop(row) + KEY_CELL_PADDING),
+                    (float) (getCellRight(col) - KEY_CELL_PADDING),
+                    (float) (getCellBottom(row) - KEY_CELL_PADDING),
                     mPaint);
         }
     }
@@ -520,8 +634,6 @@ public class KeySurfaceView extends SurfaceView implements SurfaceHolder.Callbac
     }
 
     private void drawText(Canvas canvas, int row, int col) {
-        int hOffset = col < keyMapManager.keyMapper.cols / 2 ? 0 : (this.getWidth() - buttonLayoutHeight);
-        int vOffset = this.getHeight() - buttonLayoutHeight;
         if (mapping[row][col].getKeyCodes() != null && mapping[row][col].getMouseButtons() != null) {
             if (mapping[row][col].getKeyCodes().size() > 0 || mapping[row][col].getMouseButtons().size() > 0) {
                 String[] texts = getText(mapping[row][col]);
@@ -530,7 +642,7 @@ public class KeySurfaceView extends SurfaceView implements SurfaceHolder.Callbac
                     if(text!=null) {
                         int vFontOffset = getVertFontOffset(count);
                         int hFontOffset = getHorizFontOffset(count)*2;
-                        drawText(canvas, text, row, col, hOffset + hFontOffset, vOffset + vFontOffset,
+                        drawText(canvas, text, row, col, hFontOffset, vFontOffset,
                                 count == 0? mPaintText: mPaintTextSmall, getAlignPos(count));
                     }
                     count++;
@@ -575,8 +687,8 @@ public class KeySurfaceView extends SurfaceView implements SurfaceHolder.Callbac
     private void drawText(Canvas canvas, String text, int row, int col, int hOffset, int vOffset, Paint paint, Paint.Align align) {
         paint.setTextAlign(align);
         canvas.drawText(text,
-                (float) (hOffset + (col % (keyMapManager.keyMapper.cols / 2)) * buttonSize + buttonSize / 2),
-                (float) (vOffset + row * buttonSize + buttonSize / 2),
+                (float) (getCellLeft(col) + hOffset + (getCellRight(col) - getCellLeft(col)) / 2),
+                (float) (getCellTop(row) + vOffset + (getCellBottom(row) - getCellTop(row)) / 2),
                 paint);
     }
 
@@ -763,8 +875,44 @@ public class KeySurfaceView extends SurfaceView implements SurfaceHolder.Callbac
             text = "F11";
         else if (keycode == KeyEvent.KEYCODE_F12)
             text = "F12";
-        else
+        else if (keycode >= KeyEvent.KEYCODE_A && keycode <= KeyEvent.KEYCODE_Z)
+            text = String.valueOf((char) ('A' + keycode - KeyEvent.KEYCODE_A));
+        else if (keycode == KeyEvent.KEYCODE_0)
+            text = "0";
+        else if (keycode >= KeyEvent.KEYCODE_1 && keycode <= KeyEvent.KEYCODE_9)
+            text = String.valueOf((char) ('1' + keycode - KeyEvent.KEYCODE_1));
+        else if (keycode == KeyEvent.KEYCODE_GRAVE)
+            text = "`";
+        else if (keycode == KeyEvent.KEYCODE_MINUS)
+            text = "-";
+        else if (keycode == KeyEvent.KEYCODE_EQUALS)
+            text = "=";
+        else if (keycode == KeyEvent.KEYCODE_LEFT_BRACKET)
+            text = "[";
+        else if (keycode == KeyEvent.KEYCODE_RIGHT_BRACKET)
+            text = "]";
+        else if (keycode == KeyEvent.KEYCODE_BACKSLASH)
+            text = "\\";
+        else if (keycode == KeyEvent.KEYCODE_SEMICOLON)
+            text = ";";
+        else if (keycode == KeyEvent.KEYCODE_APOSTROPHE)
+            text = "'";
+        else if (keycode == KeyEvent.KEYCODE_COMMA)
+            text = ",";
+        else if (keycode == KeyEvent.KEYCODE_PERIOD)
+            text = ".";
+        else if (keycode == KeyEvent.KEYCODE_SLASH)
+            text = "/";
+        else if (keycode == KeyEvent.KEYCODE_META_LEFT || keycode == KeyEvent.KEYCODE_META_RIGHT)
+            text = "Win";
+        else if (keycode == KeyEvent.KEYCODE_MENU)
+            text = "Menu";
+        else if (keycode == KeyEvent.KEYCODE_FUNCTION)
+            text = "Fn";
+        else if (unicodeChar > 0)
             return ((char) unicodeChar) + "";
+        else
+            return KeyEvent.keyCodeToString(keycode).replace("KEYCODE_", "");
         return text;
     }
 
