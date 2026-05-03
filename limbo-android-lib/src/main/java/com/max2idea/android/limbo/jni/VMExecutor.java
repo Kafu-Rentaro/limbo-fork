@@ -54,6 +54,7 @@ class VMExecutor extends MachineExecutor {
     private static final String TAG = "VMExecutor";
     private static final String AUDIO_DEVICE_ID = "limbo-audio0";
     private static final String NETDEV_ID = "limbo-net0";
+    private static final String SCSI_CONTROLLER_ID = "limbo-scsi0";
 
     private static final String cdDeviceName = "ide1-cd0";
     private static final String fdaDeviceName = "floppy0";
@@ -671,20 +672,73 @@ private String getQemuLibrary() {
                 }
                 paramsList.add(imagePath);
             } else {
-                paramsList.add("-drive");
-                String param = "index=" + index;
-                param += ",if=";
-                param += hdInterface;
-                param += ",media=disk";
-                if (!imagePath.equals("")) {
-                    param += ",file=" + imagePath;
+                if (isVirtioDiskInterface(hdInterface)) {
+                    addModernHardDisk(paramsList, imagePath, index, getVirtioBlockDeviceName());
+                } else if (isScsiDiskInterface(hdInterface)) {
+                    ensureScsiController(paramsList);
+                    addModernHardDisk(paramsList, imagePath, index, "scsi-hd");
+                } else {
+                    paramsList.add("-drive");
+                    String param = "index=" + index;
+                    param += ",if=";
+                    param += hdInterface;
+                    param += ",media=disk";
+                    if (!imagePath.equals("")) {
+                        param += ",file=" + imagePath;
+                    }
+                    param += getDriveCacheParams();
+                    paramsList.add(param);
                 }
-                String cache = LimboSettingsManager.getDiskCache(LimboApplication.getInstance());
-                if(cache != null && !cache.equals("default"))
-                    param += ",cache=" + cache;
-                paramsList.add(param);
             }
         }
+    }
+
+    private void addModernHardDisk(ArrayList<String> paramsList, String imagePath, int index, String deviceName) {
+        String driveId = "limbo-hd" + index;
+        paramsList.add("-drive");
+        String param = "if=none,id=" + driveId + ",media=disk";
+        if (!imagePath.equals("")) {
+            param += ",file=" + imagePath;
+        }
+        param += getDriveCacheParams();
+        paramsList.add(param);
+
+        paramsList.add("-device");
+        paramsList.add(deviceName + ",drive=" + driveId);
+    }
+
+    private void ensureScsiController(ArrayList<String> paramsList) {
+        String controllerParams = "lsi53c895a,id=" + SCSI_CONTROLLER_ID;
+        if (paramsList.contains(controllerParams)) {
+            return;
+        }
+        paramsList.add("-device");
+        paramsList.add(controllerParams);
+    }
+
+    private String getDriveCacheParams() {
+        String cache = LimboSettingsManager.getDiskCache(LimboApplication.getInstance());
+        if (cache != null && !cache.equals("default")) {
+            return ",cache=" + cache;
+        }
+        return "";
+    }
+
+    private boolean isVirtioDiskInterface(String diskInterface) {
+        return diskInterface != null && diskInterface.equals("virtio");
+    }
+
+    private boolean isScsiDiskInterface(String diskInterface) {
+        return diskInterface != null && diskInterface.equals("scsi");
+    }
+
+    private String getVirtioBlockDeviceName() {
+        if ((LimboApplication.arch == Config.Arch.arm || LimboApplication.arch == Config.Arch.arm64)
+                && getMachineType() != null
+                && getMachineType().startsWith("virt")) {
+            return "virtio-blk-device";
+        }
+        return "virtio-blk-pci";
     }
 
     public void addSharedFolder(ArrayList<String> paramsList, String sharedFolderPath) {

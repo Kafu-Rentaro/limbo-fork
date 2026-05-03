@@ -31,6 +31,7 @@
 - QEMU 11 で削除済みの `-soundhw` / `-no-acpi` / `-no-hpet` を避け、`-audio driver=sdl,model=...` と `-machine acpi=off,hpet=off` を生成するようにした。
 - QEMU 11.0.0 を Android NDK/LLVM toolchain で configure する `tools/configure-qemu-11-android.sh` を追加した。
 - QEMU network runtime options を `-net` から `-netdev ... -device ...` へ移行し、`virtio` NIC を arch/machine に応じた device 名へ解決するようにした。
+- `virtio` / `scsi` hard disk runtime options を `-drive if=none,id=...` + `-device virtio-blk-*` / `scsi-hd` 形式へ移行した。
 
 ## 目標バージョン
 
