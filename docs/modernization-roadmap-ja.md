@@ -24,6 +24,7 @@
 - SDL 表示領域と touch-control 領域を posture/orientation に応じて自動配分する `AdaptiveVmLayout` を追加した。
 - F1-F12、矢印、修飾キー、ナビゲーションキーを含む `Full Keyboard (F1-F12)` key mapper preset を追加した。
 - virtio GPU / virgl 選択肢と `-display sdl,gl=on` の QEMU 引数生成を追加した。
+- `VNC + virgl` の保存済み設定が起動時に残っている場合は、SDL display への切り替えを促して停止する保護を追加した。
 - `USE_ARMV9=true` と `USE_VIRGL=true` の native build flag を追加した。
 - QEMU 11.0.0 用の GPG signature 検証つき取得 script と version config stub を追加した。
 - full keyboard preset を操作領域いっぱいに描画し、上下分割/tabletop/左右分割/book posture の比率と連動するようにした。

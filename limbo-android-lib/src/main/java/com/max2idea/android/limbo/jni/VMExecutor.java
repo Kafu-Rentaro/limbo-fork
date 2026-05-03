@@ -161,6 +161,7 @@ private String getQemuLibrary() {
     private String[] prepareParams(Context context) throws Exception {
         ArrayList<String> paramsList = new ArrayList<>();
         paramsList.add(getQemuLibrary());
+        validateGraphicsOptions(context);
         addUIOptions(context, paramsList);
         addCpuBoardOptions(paramsList);
         addDrives(paramsList);
@@ -174,6 +175,13 @@ private String getQemuLibrary() {
         addAdvancedOptions(paramsList);
         addAccelerationOptions(paramsList);
         return paramsList.toArray(new String[0]);
+    }
+
+    private void validateGraphicsOptions(Context context) {
+        String vga = getMachine().getVga();
+        if (isVirglGpu(vga) && MachineController.getInstance().isVNCEnabled()) {
+            throw new IllegalStateException(context.getString(R.string.virgl_requires_sdl_runtime));
+        }
     }
 
     /**
@@ -609,7 +617,7 @@ private String getQemuLibrary() {
     }
 
     private boolean isVirglGpu(String vga) {
-        return vga.contains("virgl=on") || vga.endsWith("-gl");
+        return vga != null && (vga.contains("virgl=on") || vga.endsWith("-gl"));
     }
 
     private void addBootOptions(ArrayList<String> paramsList) {
