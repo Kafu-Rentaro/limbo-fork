@@ -763,7 +763,15 @@ public class LimboSDLActivity extends SDLActivity
             width = getResources().getDisplayMetrics().widthPixels;
             height = getResources().getDisplayMetrics().heightPixels;
         }
-        float controlAreaFraction = AdaptiveVmLayout.apply(mSdlContainer, mGap, orientation, width, height, foldPosture);
+        float controlAreaFraction = AdaptiveVmLayout.apply(
+                mSdlContainer,
+                mGap,
+                orientation,
+                width,
+                height,
+                foldPosture,
+                hingeAngle
+        );
         if (mKeyMapManager != null && mKeyMapManager.keySurfaceView != null) {
             mKeyMapManager.keySurfaceView.setControlArea(
                     controlAreaFraction,

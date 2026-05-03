@@ -22,6 +22,7 @@
 - Material 3 Expressive theme を導入した。
 - Jetpack WindowManager と hinge angle sensor による foldable posture 検出を SDL 画面に接続した。
 - SDL 表示領域と touch-control 領域を posture/orientation に応じて自動配分する `AdaptiveVmLayout` を追加した。
+- hinge angle が取得できる端末では、30-165度の範囲で display/control 比率を連続的に補間するようにした。
 - F1-F12、矢印、修飾キー、ナビゲーションキーを含む `Full Keyboard (F1-F12)` key mapper preset を追加した。
 - virtio GPU / virgl 選択肢と `-display sdl,gl=on` の QEMU 引数生成を追加した。
 - `VNC + virgl` の保存済み設定が起動時に残っている場合は、SDL display への切り替えを促して停止する保護を追加した。
