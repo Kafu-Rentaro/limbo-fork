@@ -1,0 +1,165 @@
+package com.max2idea.android.limbo.main
+
+import android.app.Activity
+import android.content.DialogInterface
+import android.widget.ArrayAdapter
+import androidx.appcompat.app.AlertDialog
+import com.limbo.emu.lib.R
+import com.max2idea.android.limbo.machine.Machine
+import com.max2idea.android.limbo.machine.MachineProperty
+import com.max2idea.android.limbo.toast.ToastUtils
+
+object GuestOsProfileManager {
+    private val x86WindowsProfiles = listOf(
+        GuestOsProfile(
+            title = "Windows 98 / Me",
+            description = "i440fx, IDE, SB16, Cirrus VGA",
+            machineType = "pc",
+            cpu = "pentium2",
+            memoryMb = 128,
+            vga = "cirrus",
+            soundCard = "sb16",
+            network = "User",
+            nic = "ne2k_pci",
+            mouse = "ps2",
+            hdaInterface = "ide",
+            cdInterface = "ide",
+            disableTsc = true,
+        ),
+        GuestOsProfile(
+            title = "Windows 2000 / XP",
+            description = "i440fx, IDE, AC97, VMware SVGA",
+            machineType = "pc",
+            cpu = "pentium3",
+            memoryMb = 512,
+            vga = "vmware",
+            soundCard = "ac97",
+            network = "User",
+            nic = "rtl8139",
+            mouse = "usb-tablet",
+            hdaInterface = "ide",
+            cdInterface = "ide",
+            disableTsc = true,
+        ),
+        GuestOsProfile(
+            title = "Windows 7",
+            description = "i440fx, SATA-like IDE baseline, e1000, std VGA",
+            machineType = "pc",
+            cpu = "core2duo",
+            cpuCores = 2,
+            memoryMb = 2048,
+            vga = "std",
+            soundCard = "hda",
+            network = "User",
+            nic = "e1000",
+            mouse = "usb-tablet",
+            hdaInterface = "ide",
+            cdInterface = "ide",
+            disableTsc = false,
+        ),
+        GuestOsProfile(
+            title = "Windows 10",
+            description = "q35, virtio storage/network, virtio GPU",
+            machineType = "q35",
+            cpu = "qemu64",
+            cpuCores = 2,
+            memoryMb = 4096,
+            vga = "virtio-gpu-pci",
+            soundCard = "hda",
+            network = "User",
+            nic = "virtio",
+            mouse = "usb-tablet",
+            hdaInterface = "virtio",
+            cdInterface = "ide",
+            disableTsc = false,
+            ui = "SDL",
+        ),
+        GuestOsProfile(
+            title = "Windows 11 + 3D",
+            description = "q35, virtio, virgl/SDL GL path",
+            machineType = "q35",
+            cpu = "qemu64",
+            cpuCores = 4,
+            memoryMb = 4096,
+            vga = "virtio-gpu-pci,virgl=on",
+            soundCard = "hda",
+            network = "User",
+            nic = "virtio",
+            mouse = "usb-tablet",
+            hdaInterface = "virtio",
+            cdInterface = "ide",
+            disableTsc = false,
+            ui = "SDL",
+        ),
+    )
+
+    @JvmStatic
+    fun promptApply(activity: Activity, machine: Machine?, viewListener: ViewListener?) {
+        if (machine == null || viewListener == null) {
+            ToastUtils.toastShort(activity, activity.getString(R.string.SelectAMachineFirst))
+            return
+        }
+        if (LimboApplication.arch != Config.Arch.x86 && LimboApplication.arch != Config.Arch.x86_64) {
+            ToastUtils.toastShort(activity, activity.getString(R.string.guest_profile_x86_only))
+            return
+        }
+
+        val labels = x86WindowsProfiles.map { "${it.title}\n${it.description}" }
+        val adapter = ArrayAdapter(activity, android.R.layout.simple_list_item_1, labels)
+        AlertDialog.Builder(activity)
+            .setTitle(R.string.guest_profile)
+            .setAdapter(adapter) { dialog: DialogInterface, which: Int ->
+                val profile = x86WindowsProfiles[which]
+                profile.applyTo(viewListener)
+                ToastUtils.toastShort(
+                    activity,
+                    activity.getString(R.string.guest_profile_applied, profile.title)
+                )
+                dialog.dismiss()
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private data class GuestOsProfile(
+        val title: String,
+        val description: String,
+        val machineType: String,
+        val cpu: String,
+        val cpuCores: Int = 1,
+        val memoryMb: Int,
+        val vga: String,
+        val soundCard: String,
+        val network: String,
+        val nic: String,
+        val mouse: String,
+        val hdaInterface: String,
+        val cdInterface: String,
+        val disableTsc: Boolean,
+        val ui: String? = null,
+    ) {
+        fun applyTo(viewListener: ViewListener) {
+            viewListener.onFieldChange(MachineProperty.MACHINETYPE, machineType)
+            viewListener.onFieldChange(MachineProperty.CPU, cpu)
+            viewListener.onFieldChange(MachineProperty.CPUNUM, cpuCores)
+            viewListener.onFieldChange(MachineProperty.MEMORY, memoryMb)
+            viewListener.onFieldChange(MachineProperty.VGA, vga)
+            viewListener.onFieldChange(MachineProperty.SOUNDCARD, soundCard)
+            viewListener.onFieldChange(MachineProperty.NETCONFIG, network)
+            viewListener.onFieldChange(MachineProperty.NICCONFIG, nic)
+            viewListener.onFieldChange(MachineProperty.MOUSE, mouse)
+            viewListener.onFieldChange(MachineProperty.DISABLE_TSC, disableTsc)
+            viewListener.onFieldChange(
+                MachineProperty.MEDIA_INTERFACE,
+                arrayOf<Any>(MachineProperty.HDA, hdaInterface)
+            )
+            viewListener.onFieldChange(
+                MachineProperty.MEDIA_INTERFACE,
+                arrayOf<Any>(MachineProperty.CDROM, cdInterface)
+            )
+            if (ui != null && Config.enable_SDL) {
+                viewListener.onFieldChange(MachineProperty.UI, ui)
+            }
+        }
+    }
+}

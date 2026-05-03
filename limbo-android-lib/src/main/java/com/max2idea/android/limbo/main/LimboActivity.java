@@ -114,6 +114,7 @@ public class LimboActivity extends AppCompatActivity
     private static final int TOOLS = 14;
     private static final int IMPORT_BIOS_FILE = 15;
     private static final int POST_NOTIFICATIONS_REQUEST = 16;
+    private static final int GUEST_PROFILE = 17;
 
     // disk mapping
     private static final Hashtable<FileType, DiskInfo> diskMapping = new Hashtable<>();
@@ -2681,6 +2682,8 @@ public class LimboActivity extends AppCompatActivity
                 menu.add(0, DISCARD_VM_STATE, 0, R.string.DiscardSavedState).setIcon(R.drawable.close);
             menu.add(0, EXPORT, 0, R.string.ExportMachines).setIcon(R.drawable.exportvms);
             menu.add(0, IMPORT, 0, R.string.ImportMachines).setIcon(R.drawable.importvms);
+            if (getMachine() != null)
+                menu.add(0, GUEST_PROFILE, 0, R.string.guest_profile).setIcon(R.drawable.advanced);
         }
         menu.add(0, IMPORT_BIOS_FILE, 0, R.string.ImportBIOSFile).setIcon(R.drawable.importvms);
         menu.add(0, SETTINGS, 0, R.string.Settings).setIcon(R.drawable.settings);
@@ -2719,6 +2722,8 @@ public class LimboActivity extends AppCompatActivity
             MachineImporter.promptImportMachines(this);
         } else if (item.getItemId() == IMPORT_BIOS_FILE) {
             BIOSImporter.promptImportBIOSFile(this);
+        } else if (item.getItemId() == GUEST_PROFILE) {
+            GuestOsProfileManager.promptApply(this, getMachine(), viewListener);
         } else if (item.getItemId() == HELP) {
             Help.showHelp(this);
         } else if (item.getItemId() == VIEWLOG) {

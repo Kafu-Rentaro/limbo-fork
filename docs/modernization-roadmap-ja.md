@@ -25,6 +25,7 @@
 - `USE_ARMV9=true` と `USE_VIRGL=true` の native build flag を追加した。
 - QEMU 11.0.0 用の GPG signature 検証つき取得 script と version config stub を追加した。
 - full keyboard preset を操作領域いっぱいに描画し、上下分割/tabletop/左右分割/book posture の比率と連動するようにした。
+- Windows 98/Me、2000/XP、7、10、11 + 3D 向けの x86 guest profile 適用 UI を追加した。
 
 ## 目標バージョン
 

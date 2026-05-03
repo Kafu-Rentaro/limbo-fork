@@ -374,4 +374,7 @@
     <string name="IgnoreBreakpointInvalidationSummary">Ignore Breakpoint Invalidation</string>
     <string name="ImportBIOSFile">Import BIOS</string>
     <string name="importBIOSInstructions">Select a BIOS file (bin, rom, etc..) to import.</string>
+    <string name="guest_profile">Guest OS Profile</string>
+    <string name="guest_profile_applied">Applied profile: %1$s</string>
+    <string name="guest_profile_x86_only">Windows guest profiles are available in the x86 emulator.</string>
 </resources>
