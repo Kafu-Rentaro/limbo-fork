@@ -25,6 +25,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Environment
 import android.util.Log
+import com.google.android.material.color.DynamicColors
 import com.max2idea.android.limbo.files.FileUtils
 import com.max2idea.android.limbo.machine.Dispatcher
 import com.max2idea.android.limbo.machine.FavOpenHelper
@@ -40,6 +41,7 @@ class LimboApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         instance = this
+        DynamicColors.applyToActivitiesIfAvailable(this)
         try {
             Class.forName("android.os.AsyncTask")
         } catch (_: Throwable) {
