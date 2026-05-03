@@ -322,6 +322,7 @@
     <string name="DeleteKeyMapper">Delete Key Mapper?</string>
     <string name="CopyTo">Copy To</string>
     <string name="Yes">Yes</string>
+    <string name="No">No</string>
     <string name="NewVersionWarning">There is a new version available with fixes and new features. Do you want to update?</string>
     <string name="CannotListDirectory">Cannot list directory</string>
     <string name="CouldNotPauseVMViewLogFileDetails">Could not pause VM. View log for details</string>
