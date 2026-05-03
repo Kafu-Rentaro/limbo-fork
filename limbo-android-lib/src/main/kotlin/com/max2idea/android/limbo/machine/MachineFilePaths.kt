@@ -16,26 +16,28 @@ Copyright (C) Max Kastanas 2012
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
  */
-package com.max2idea.android.limbo.machine;
+package com.max2idea.android.limbo.machine
 
-import java.util.ArrayList;
+import java.util.ArrayList
+import java.util.Locale
 
-public class MachineFilePaths {
-
-    public static void insertRecentFilePath(Machine.FileType fileType, String filePath) {
-        if (fileType == null || filePath == null || filePath.equals(""))
-            return;
+object MachineFilePaths {
+    @JvmStatic
+    fun insertRecentFilePath(fileType: Machine.FileType?, filePath: String?) {
+        if (fileType == null || filePath.isNullOrEmpty()) {
+            return
+        }
         if (!isRecentFilePathStored(fileType, filePath)) {
-            FavOpenHelper.getInstance().insertFav(fileType.name().toLowerCase(), filePath);
+            FavOpenHelper.getInstance().insertFav(fileType.name.lowercase(Locale.US), filePath)
         }
     }
 
-    public static boolean isRecentFilePathStored(Machine.FileType type, String filePath) {
-        return FavOpenHelper.getInstance().getFavSeq(type.toString().toLowerCase(), filePath) >= 0;
-    }
-    synchronized
-    public static  ArrayList<String> getRecentFilePaths(Machine.FileType fileType) {
-        return FavOpenHelper.getInstance().getFav(fileType.toString().toLowerCase());
-    }
+    @JvmStatic
+    fun isRecentFilePathStored(type: Machine.FileType, filePath: String): Boolean =
+        FavOpenHelper.getInstance().getFavSeq(type.toString().lowercase(Locale.US), filePath) >= 0
 
+    @JvmStatic
+    @Synchronized
+    fun getRecentFilePaths(fileType: Machine.FileType): ArrayList<String> =
+        FavOpenHelper.getInstance().getFav(fileType.toString().lowercase(Locale.US))
 }

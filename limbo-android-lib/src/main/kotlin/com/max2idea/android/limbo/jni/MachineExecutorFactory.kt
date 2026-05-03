@@ -16,23 +16,22 @@ Copyright (C) Max Kastanas 2012
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
  */
-package com.max2idea.android.limbo.jni;
+package com.max2idea.android.limbo.jni
 
-import com.max2idea.android.limbo.machine.MachineController;
-import com.max2idea.android.limbo.machine.MachineExecutor;
+import com.max2idea.android.limbo.machine.MachineController
+import com.max2idea.android.limbo.machine.MachineExecutor
 
-public class MachineExecutorFactory {
-    private static final String TAG = "MachineExecutorFactory";
-
-    public static MachineExecutor createMachineExecutor(MachineController machineController, MachineExecutorType type) {
-        switch (type) {
-            case QEMU:
-                return new VMExecutor(machineController);
-        }
-        return null;
+object MachineExecutorFactory {
+    @JvmStatic
+    fun createMachineExecutor(
+        machineController: MachineController,
+        type: MachineExecutorType?,
+    ): MachineExecutor? = when (type) {
+        MachineExecutorType.QEMU -> VMExecutor(machineController)
+        null -> null
     }
 
-    public enum MachineExecutorType {
-        QEMU
+    enum class MachineExecutorType {
+        QEMU,
     }
 }
