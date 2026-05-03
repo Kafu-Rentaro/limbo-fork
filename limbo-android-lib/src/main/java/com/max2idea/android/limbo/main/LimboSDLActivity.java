@@ -18,7 +18,6 @@ Copyright (C) Max Kastanas 2012
  */
 package com.max2idea.android.limbo.main;
 
-import android.app.AlertDialog;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
@@ -55,6 +54,7 @@ import android.widget.SeekBar.OnSeekBarChangeListener;
 import android.widget.TextView;
 
 import androidx.appcompat.app.ActionBar;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.content.ContextCompat;
 import androidx.core.util.Consumer;
@@ -64,6 +64,7 @@ import androidx.window.layout.FoldingFeature;
 import androidx.window.layout.WindowInfoTracker;
 import androidx.window.layout.WindowLayoutInfo;
 
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.limbo.emu.lib.R;
 import com.max2idea.android.limbo.files.FileUtils;
 import com.max2idea.android.limbo.help.Help;
@@ -281,7 +282,7 @@ public class LimboSDLActivity extends SDLActivity
 
     private void promptSendText() {
         final AlertDialog alertDialog;
-        alertDialog = new AlertDialog.Builder(this).create();
+        alertDialog = new MaterialAlertDialogBuilder(this).create();
         alertDialog.setTitle(getString(R.string.SendText));
         final EditText text = new EditText(this);
         text.setText("");
@@ -320,7 +321,7 @@ public class LimboSDLActivity extends SDLActivity
                 getString(R.string.TouchScreen),
                 getString(R.string.ExternalMouseDescr)
         };
-        final AlertDialog.Builder mBuilder = new AlertDialog.Builder(this);
+        final AlertDialog.Builder mBuilder = new MaterialAlertDialogBuilder(this);
         mBuilder.setTitle(R.string.Mouse);
         mBuilder.setSingleChoiceItems(items, -1, new DialogInterface.OnClickListener() {
             @Override
@@ -358,7 +359,7 @@ public class LimboSDLActivity extends SDLActivity
 
     private void promptAbsoluteDevice(final boolean externalMouse) {
         final AlertDialog alertDialog;
-        alertDialog = new AlertDialog.Builder(this).create();
+        alertDialog = new MaterialAlertDialogBuilder(this).create();
         alertDialog.setTitle(getString(R.string.desktopMode));
 
         LinearLayout mLayout = new LinearLayout(this);
@@ -605,7 +606,7 @@ public class LimboSDLActivity extends SDLActivity
     public void promptVolume() {
 
         final AlertDialog alertDialog;
-        alertDialog = new AlertDialog.Builder(this).create();
+        alertDialog = new MaterialAlertDialogBuilder(this).create();
         alertDialog.setTitle(getString(R.string.Volume));
 
         LinearLayout.LayoutParams volParams = new LinearLayout.LayoutParams(
@@ -617,7 +618,7 @@ public class LimboSDLActivity extends SDLActivity
         ScrollView s = new ScrollView(this);
         s.addView(t);
         alertDialog.setView(s);
-        alertDialog.setButton(android.app.Dialog.BUTTON_POSITIVE, getString(android.R.string.ok), new DialogInterface.OnClickListener() {
+        alertDialog.setButton(DialogInterface.BUTTON_POSITIVE, getString(android.R.string.ok), new DialogInterface.OnClickListener() {
 
             public void onClick(DialogInterface dialog, int which) {
                 alertDialog.cancel();
@@ -872,7 +873,7 @@ public class LimboSDLActivity extends SDLActivity
     public void promptSDLDisplay() {
 
         final AlertDialog alertDialog;
-        alertDialog = new AlertDialog.Builder(this).create();
+        alertDialog = new MaterialAlertDialogBuilder(this).create();
         alertDialog.setTitle(getString(R.string.display));
 
         LinearLayout.LayoutParams volParams = new LinearLayout.LayoutParams(
@@ -884,7 +885,7 @@ public class LimboSDLActivity extends SDLActivity
         ScrollView s = new ScrollView(this);
         s.addView(t);
         alertDialog.setView(s);
-        alertDialog.setButton(android.app.Dialog.BUTTON_POSITIVE, getString(R.string.Ok), new DialogInterface.OnClickListener() {
+        alertDialog.setButton(DialogInterface.BUTTON_POSITIVE, getString(R.string.Ok), new DialogInterface.OnClickListener() {
 
             public void onClick(DialogInterface dialog, int which) {
                 alertDialog.cancel();

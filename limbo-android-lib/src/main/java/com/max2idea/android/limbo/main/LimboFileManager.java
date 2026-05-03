@@ -20,7 +20,6 @@ package com.max2idea.android.limbo.main;
 
 import android.Manifest;
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.app.ListActivity;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -46,9 +45,11 @@ import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.limbo.emu.lib.R;
 import com.max2idea.android.limbo.dialog.DialogUtils;
 import com.max2idea.android.limbo.files.FileUtils;
@@ -386,7 +387,10 @@ public class LimboFileManager extends ListActivity {
                     currentDir.setText(file.getPath());
                     fill(files);
                 } else {
-                    new AlertDialog.Builder(this).setTitle(R.string.AccessDenied).setMessage(R.string.CannotListDirectory).show();
+                    new MaterialAlertDialogBuilder(this)
+                            .setTitle(R.string.AccessDenied)
+                            .setMessage(R.string.CannotListDirectory)
+                            .show();
                 }
             } else {
                 this.selectFile();
@@ -434,7 +438,7 @@ public class LimboFileManager extends ListActivity {
 
     public void promptCreateDir(final Activity activity) {
         final AlertDialog alertDialog;
-        alertDialog = new AlertDialog.Builder(activity).create();
+        alertDialog = new MaterialAlertDialogBuilder(activity).create();
         alertDialog.setTitle(getString(R.string.NewDirectory));
         final EditText dirNameTextview = new EditText(activity);
         dirNameTextview.setPadding(20, 20, 20, 20);

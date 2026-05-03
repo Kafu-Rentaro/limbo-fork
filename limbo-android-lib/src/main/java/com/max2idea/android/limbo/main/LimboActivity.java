@@ -20,7 +20,6 @@ package com.max2idea.android.limbo.main;
 
 import android.Manifest;
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.app.NotificationManager;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -56,10 +55,12 @@ import android.widget.Spinner;
 import android.widget.TextView;
 
 import androidx.appcompat.app.ActionBar;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.widget.NestedScrollView;
 
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.limbo.emu.lib.R;
 import com.max2idea.android.limbo.dialog.DialogUtils;
 import com.max2idea.android.limbo.files.FileInstaller;
@@ -827,7 +828,7 @@ public class LimboActivity extends AppCompatActivity
                 "scsi",
                 "virtio"
         };
-        final AlertDialog.Builder mBuilder = new AlertDialog.Builder(this);
+        final AlertDialog.Builder mBuilder = new MaterialAlertDialogBuilder(this);
         mBuilder.setTitle(machineDriveName + " " + getString(R.string.Interface));
         int driveInterface = getMachineInterface(machineDriveName, items);
         mBuilder.setSingleChoiceItems(items, driveInterface, new DialogInterface.OnClickListener() {
@@ -2176,7 +2177,7 @@ public class LimboActivity extends AppCompatActivity
 
     public void promptMachineName(final Activity activity) {
         final AlertDialog alertDialog;
-        alertDialog = new AlertDialog.Builder(activity).create();
+        alertDialog = new MaterialAlertDialogBuilder(activity).create();
         alertDialog.setTitle(getString(R.string.NewMachineName));
         final EditText vmNameTextView = new EditText(activity);
         vmNameTextView.setPadding(20, 20, 20, 20);
@@ -2212,7 +2213,7 @@ public class LimboActivity extends AppCompatActivity
     public void promptImageName(final Activity activity, final FileType fileType) {
 
         final AlertDialog alertDialog;
-        alertDialog = new AlertDialog.Builder(activity).create();
+        alertDialog = new MaterialAlertDialogBuilder(activity).create();
         alertDialog.setTitle(getString(R.string.ImageName));
 
         LinearLayout mLayout = new LinearLayout(this);
@@ -2744,7 +2745,7 @@ public class LimboActivity extends AppCompatActivity
             ToastUtils.toastShort(this, getString(R.string.NoMachineSelected));
             return;
         }
-        new AlertDialog.Builder(this).setTitle(getString(R.string.DeleteVM) + ": " + getMachine().getName())
+        new MaterialAlertDialogBuilder(this).setTitle(getString(R.string.DeleteVM) + ": " + getMachine().getName())
                 .setMessage(R.string.deleteVMWarning)
                 .setPositiveButton(getString(android.R.string.yes), new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int which) {
@@ -2757,7 +2758,7 @@ public class LimboActivity extends AppCompatActivity
     }
 
     public void promptDiscardVMState() {
-        new AlertDialog.Builder(this).setTitle(R.string.discardVMState)
+        new MaterialAlertDialogBuilder(this).setTitle(R.string.discardVMState)
                 .setMessage(R.string.discardVMInstructions)
                 .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int which) {
