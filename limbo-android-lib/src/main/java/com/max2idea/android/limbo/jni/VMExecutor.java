@@ -339,7 +339,7 @@ private String getQemuLibrary() {
             paramsList.add(getMachine().getCpuNum() + "");
         }
         String machineType = getMachineTypeWithRuntimeProperties();
-        if (machineType != null && !machineType.equals("Default")) {
+        if (machineType != null && !"Default".equals(machineType)) {
             paramsList.add("-M");
             paramsList.add(machineType);
         }
@@ -401,10 +401,10 @@ private String getQemuLibrary() {
                 && machineType == null) {
             machineType = "pc";
         } else if ((LimboApplication.arch == Config.Arch.ppc || LimboApplication.arch == Config.Arch.ppc64)
-                && machineType.equals("Default")) {
+                && "Default".equals(machineType)) {
             machineType = null;
         } else if ((LimboApplication.arch == Config.Arch.sparc || LimboApplication.arch == Config.Arch.sparc64)
-                && machineType.equals("Default")) {
+                && "Default".equals(machineType)) {
             machineType = null;
         }
         return machineType;
@@ -448,7 +448,7 @@ private String getQemuLibrary() {
     }
 
     private String appendMachineProperty(String machineType, String property, String value) {
-        if (machineType == null || machineType.equals("Default")) {
+        if (machineType == null || "Default".equals(machineType)) {
             machineType = "pc";
         }
         if (machineType.contains(property + "=")) {
@@ -521,10 +521,10 @@ private String getQemuLibrary() {
     }
 
     private String getNetworkDeviceName(String networkCard) {
-        if (networkCard.equals("Default")) {
+        if ("Default".equals(networkCard)) {
             return getDefaultNetworkDeviceName();
         }
-        if (networkCard.equals("virtio")) {
+        if ("virtio".equals(networkCard)) {
             if ((LimboApplication.arch == Config.Arch.arm || LimboApplication.arch == Config.Arch.arm64)
                     && getMachineType() != null
                     && getMachineType().startsWith("virt")) {
@@ -637,15 +637,16 @@ private String getQemuLibrary() {
     }
 
     private String getBootDevice() {
+        String bootDevice = getMachine().getBootDevice();
         if (LimboApplication.arch == Config.Arch.arm || LimboApplication.arch == Config.Arch.arm64) {
             return null;
-        } else if (getMachine().getBootDevice().equals("Default")) {
+        } else if ("Default".equals(bootDevice)) {
             return null;
-        } else if (getMachine().getBootDevice().equals("CDROM")) {
+        } else if ("CDROM".equals(bootDevice)) {
             return "d";
-        } else if (getMachine().getBootDevice().equals("Floppy")) {
+        } else if ("Floppy".equals(bootDevice)) {
             return "a";
-        } else if (getMachine().getBootDevice().equals("Hard Disk")) {
+        } else if ("Hard Disk".equals(bootDevice)) {
             return "c";
         }
         return null;
