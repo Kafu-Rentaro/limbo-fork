@@ -254,6 +254,11 @@ private String getQemuLibrary() {
         if (soundCard == null) {
             return;
         }
+        if (!usesModernAudioOptions()) {
+            paramsList.add("-soundhw");
+            paramsList.add(soundCard);
+            return;
+        }
         if ("pcspk".equals(soundCard)) {
             paramsList.add("-audiodev");
             paramsList.add("driver=sdl,id=" + AUDIO_DEVICE_ID);
@@ -268,6 +273,10 @@ private String getQemuLibrary() {
             return "hda";
         }
         return soundCard;
+    }
+
+    private boolean usesModernAudioOptions() {
+        return LimboApplication.getQemuVersion() >= 70100;
     }
 
     private void addGenericOptions(Context context, ArrayList<String> paramsList) {
@@ -408,7 +417,7 @@ private String getQemuLibrary() {
         if (getMachine().getDisableHPET() != 0) {
             machineType = appendMachineProperty(machineType, "hpet", "off");
         }
-        if ("pcspk".equals(getSoundCard())) {
+        if (usesModernAudioOptions() && "pcspk".equals(getSoundCard())) {
             machineType = appendMachineProperty(machineType, "pcspk-audiodev", AUDIO_DEVICE_ID);
         }
         return machineType;
