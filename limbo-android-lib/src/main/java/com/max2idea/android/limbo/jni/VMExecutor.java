@@ -27,6 +27,7 @@ import android.view.Gravity;
 
 import com.limbo.emu.lib.R;
 import com.max2idea.android.limbo.files.FileUtils;
+import com.max2idea.android.limbo.machine.GraphicsCapabilities;
 import com.max2idea.android.limbo.machine.MachineAction;
 import com.max2idea.android.limbo.machine.MachineController;
 import com.max2idea.android.limbo.machine.MachineExecutor;
@@ -179,7 +180,7 @@ private String getQemuLibrary() {
 
     private void validateGraphicsOptions(Context context) {
         String vga = getMachine().getVga();
-        if (isVirglGpu(vga) && MachineController.getInstance().isVNCEnabled()) {
+        if (GraphicsCapabilities.isVirglGpu(vga) && MachineController.getInstance().isVNCEnabled()) {
             throw new IllegalStateException(context.getString(R.string.virgl_requires_sdl_runtime));
         }
     }
@@ -592,8 +593,8 @@ private String getQemuLibrary() {
             String vga = getMachine().getVga();
             if (vga.equals("Default")) {
                 //do nothing
-            } else if (isDeviceBackedGpu(vga)) {
-                if (isVirglGpu(vga) && !MachineController.getInstance().isVNCEnabled()) {
+            } else if (GraphicsCapabilities.isDeviceBackedGpu(vga)) {
+                if (GraphicsCapabilities.isVirglGpu(vga) && !MachineController.getInstance().isVNCEnabled()) {
                     paramsList.add("-display");
                     paramsList.add("sdl,gl=on");
                 }
@@ -606,18 +607,6 @@ private String getQemuLibrary() {
                 paramsList.add(vga);
             }
         }
-    }
-
-    private boolean isDeviceBackedGpu(String vga) {
-        return vga.startsWith("virtio-gpu")
-                || vga.startsWith("virtio-vga")
-                || vga.startsWith("VGA")
-                || vga.startsWith("isa-vga")
-                || vga.startsWith("secondary-vga");
-    }
-
-    private boolean isVirglGpu(String vga) {
-        return vga != null && (vga.contains("virgl=on") || vga.endsWith("-gl"));
     }
 
     private void addBootOptions(ArrayList<String> paramsList) {

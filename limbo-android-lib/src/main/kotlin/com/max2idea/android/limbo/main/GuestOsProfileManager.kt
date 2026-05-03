@@ -7,6 +7,7 @@ import androidx.appcompat.app.AlertDialog
 import com.limbo.emu.lib.R
 import com.max2idea.android.limbo.machine.Machine
 import com.max2idea.android.limbo.machine.MachineProperty
+import com.max2idea.android.limbo.machine.GraphicsCapabilities
 import com.max2idea.android.limbo.toast.ToastUtils
 
 object GuestOsProfileManager {
@@ -33,7 +34,7 @@ object GuestOsProfileManager {
             machineType = "pc,hpet=off,usb=off",
             cpu = "pentium2",
             memoryMb = 256,
-            vga = "VGA,vgamem_mb=64",
+            vga = GraphicsCapabilities.LEGACY_VGA_64MB,
             soundCard = "ac97",
             network = "User",
             nic = "pcnet",
@@ -106,7 +107,7 @@ object GuestOsProfileManager {
             cpu = "qemu64",
             cpuCores = 4,
             memoryMb = 4096,
-            vga = "virtio-gpu-pci,virgl=on",
+            vga = GraphicsCapabilities.VIRTIO_GPU_PCI_VIRGL,
             soundCard = "hda",
             network = "User",
             nic = "virtio",

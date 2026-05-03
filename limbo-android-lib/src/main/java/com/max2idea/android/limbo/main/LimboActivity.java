@@ -71,6 +71,7 @@ import com.max2idea.android.limbo.links.LinksManager;
 import com.max2idea.android.limbo.log.Logger;
 import com.max2idea.android.limbo.machine.ArchDefinitions;
 import com.max2idea.android.limbo.machine.BIOSImporter;
+import com.max2idea.android.limbo.machine.GraphicsCapabilities;
 import com.max2idea.android.limbo.machine.Machine;
 import com.max2idea.android.limbo.machine.Machine.FileType;
 import com.max2idea.android.limbo.machine.MachineAction;
@@ -365,12 +366,12 @@ public class LimboActivity extends AppCompatActivity
                 if (getMachine() == null)
                     return;
                 String ui = (String) ((ArrayAdapter<?>) mUI.getAdapter()).getItem(position);
-                if ("VNC".equals(ui) && isVirglGpu(getSelectedVga()) && Config.enable_SDL) {
+                if ("VNC".equals(ui) && GraphicsCapabilities.isVirglGpu(getSelectedVga()) && Config.enable_SDL) {
                     enforceSDLForVirgl();
                     return;
                 }
                 notifyFieldChange(MachineProperty.UI, ui);
-                if ("VNC".equals(ui) && isVirglGpu(getSelectedVga())) {
+                if ("VNC".equals(ui) && GraphicsCapabilities.isVirglGpu(getSelectedVga())) {
                     ToastUtils.toastShort(LimboActivity.this, getString(R.string.virgl_requires_sdl));
                 }
             }
@@ -515,7 +516,7 @@ public class LimboActivity extends AppCompatActivity
                     return;
                 String vgacfg = (String) ((ArrayAdapter<?>) mVGAConfig.getAdapter()).getItem(position);
                 notifyFieldChange(MachineProperty.VGA, vgacfg);
-                if (isVirglGpu(vgacfg)) {
+                if (GraphicsCapabilities.isVirglGpu(vgacfg)) {
                     enforceSDLForVirgl();
                 }
             }
@@ -2514,10 +2515,6 @@ public class LimboActivity extends AppCompatActivity
             return null;
         }
         return (String) mVGAConfig.getSelectedItem();
-    }
-
-    private boolean isVirglGpu(String vga) {
-        return vga != null && (vga.contains("virgl=on") || vga.endsWith("-gl"));
     }
 
     private void enforceSDLForVirgl() {

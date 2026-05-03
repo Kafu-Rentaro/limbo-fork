@@ -77,11 +77,11 @@ object ArchDefinitions {
         if (LimboApplication.arch == Config.Arch.x86 || LimboApplication.arch == Config.Arch.x86_64) {
             vgaValues.add("cirrus")
             vgaValues.add("vmware")
-            vgaValues.add("VGA,vgamem_mb=64")
-            vgaValues.add("virtio-vga")
-            vgaValues.add("virtio-vga-gl")
-            vgaValues.add("virtio-gpu-pci")
-            vgaValues.add("virtio-gpu-pci,virgl=on")
+            vgaValues.add(GraphicsCapabilities.LEGACY_VGA_64MB)
+            vgaValues.add(GraphicsCapabilities.VIRTIO_VGA)
+            vgaValues.add(GraphicsCapabilities.VIRTIO_VGA_GL)
+            vgaValues.add(GraphicsCapabilities.VIRTIO_GPU_PCI)
+            vgaValues.add(GraphicsCapabilities.VIRTIO_GPU_PCI_VIRGL)
         }
 
         if (LimboApplication.arch == Config.Arch.sparc || LimboApplication.arch == Config.Arch.sparc64) {
@@ -89,8 +89,8 @@ object ArchDefinitions {
         }
 
         if (LimboApplication.arch == Config.Arch.arm || LimboApplication.arch == Config.Arch.arm64) {
-            vgaValues.add("virtio-gpu-pci")
-            vgaValues.add("virtio-gpu-pci,virgl=on")
+            vgaValues.add(GraphicsCapabilities.VIRTIO_GPU_PCI)
+            vgaValues.add(GraphicsCapabilities.VIRTIO_GPU_PCI_VIRGL)
         }
 
         vgaValues.add("nographic")
