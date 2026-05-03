@@ -771,7 +771,8 @@ public class LimboSDLActivity extends SDLActivity
                 width,
                 height,
                 foldPosture,
-                hingeAngle
+                hingeAngle,
+                mKeyMapManager != null && mKeyMapManager.isFullKeyboardActive()
         );
         if (mKeyMapManager != null && mKeyMapManager.keySurfaceView != null) {
             mKeyMapManager.keySurfaceView.setControlArea(
@@ -858,7 +859,7 @@ public class LimboSDLActivity extends SDLActivity
         hingeAngle = newAngle;
         if (newAngle >= 165f) {
             foldPosture = AdaptiveVmLayout.POSTURE_FLAT;
-        } else if (newAngle > 30f) {
+        } else {
             foldPosture = getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE
                     ? AdaptiveVmLayout.POSTURE_TABLETOP
                     : AdaptiveVmLayout.POSTURE_BOOK;

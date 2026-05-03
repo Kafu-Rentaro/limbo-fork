@@ -633,7 +633,7 @@ public class KeyMapManager {
         }
     }
 
-    boolean isFullKeyboardActive() {
+    public boolean isFullKeyboardActive() {
         return keyMapper != null && BUILT_IN_FULL_KEYBOARD_NAME.equals(keyMapper.name);
     }
 
