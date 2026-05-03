@@ -53,6 +53,7 @@ import java.util.Arrays;
 class VMExecutor extends MachineExecutor {
     private static final String TAG = "VMExecutor";
     private static final String AUDIO_DEVICE_ID = "limbo-audio0";
+    private static final String NETDEV_ID = "limbo-net0";
 
     private static final String cdDeviceName = "ide1-cd0";
     private static final String fdaDeviceName = "floppy0";
@@ -430,49 +431,95 @@ private String getQemuLibrary() {
     }
 
     private void addNetworkOptions(ArrayList<String> paramsList) throws Exception {
-
         String network = getNetCfg();
-        if (network != null) {
-            paramsList.add("-net");
-            if (network.equals("user")) {
-                String netParams = network;
-                String hostFwd = getHostFwd();
-                if (hostFwd != null) {
-
-                    //hostfwd=[tcp|udp]:[hostaddr]:hostport-[guestaddr]:guestport{,hostfwd=...}
-                    // example forward ssh from guest port 2222 to guest port 22:
-                    // hostfwd=tcp::2222-:22
-                    if (hostFwd.startsWith("hostfwd")) {
-                        throw new Exception("Invalid format for Host Forward, should be: tcp:hostport1:guestport1,udp:hostport2:questport2,...");
-                    }
-                    String[] hostFwdParams = hostFwd.split(",");
-                    for (int i = 0; i < hostFwdParams.length; i++) {
-                        netParams += ",";
-                        String[] hostfwdparam = hostFwdParams[i].split(":");
-                        netParams += ("hostfwd=" + hostfwdparam[0] + "::" + hostfwdparam[1] + "-:" + hostfwdparam[2]);
-                    }
-                }
-                paramsList.add(netParams);
-            } else if (network.equals("tap")) {
-                paramsList.add("tap,vlan=0,ifname=tap0,script=no");
-            } else if (network.equals("none")) {
-                paramsList.add("none");
-            } else {
-                //Unknown interface
-                paramsList.add("none");
-            }
+        if (network == null || network.equals("none")) {
+            paramsList.add("-nic");
+            paramsList.add("none");
+            return;
         }
 
         String networkCard = getNicCard();
-        if (networkCard != null) {
-            paramsList.add("-net");
-            String nicParams = "nic";
-            if (network.equals("tap"))
-                nicParams += ",vlan=0";
-            if (!networkCard.equals("Default"))
-                nicParams += (",model=" + networkCard);
-            paramsList.add(nicParams);
+        if (networkCard == null) {
+            return;
         }
+
+        paramsList.add("-netdev");
+        paramsList.add(getNetdevParams(network));
+
+        paramsList.add("-device");
+        paramsList.add(getNetworkDeviceParams(networkCard));
+    }
+
+    private String getNetdevParams(String network) throws Exception {
+        if (network.equals("user")) {
+            return "user,id=" + NETDEV_ID + getHostForwardParams();
+        } else if (network.equals("tap")) {
+            return "tap,id=" + NETDEV_ID + ",ifname=tap0,script=no,downscript=no";
+        }
+        throw new Exception("Unsupported network backend: " + network);
+    }
+
+    private String getHostForwardParams() throws Exception {
+        String hostFwd = getHostFwd();
+        if (hostFwd == null) {
+            return "";
+        }
+        if (hostFwd.startsWith("hostfwd")) {
+            throw new Exception("Invalid format for Host Forward, should be: tcp:hostport1:guestport1,udp:hostport2:guestport2,...");
+        }
+        StringBuilder params = new StringBuilder();
+        String[] hostFwdParams = hostFwd.split(",");
+        for (String hostFwdParam : hostFwdParams) {
+            String[] parts = hostFwdParam.trim().split(":");
+            if (parts.length != 3) {
+                throw new Exception("Invalid format for Host Forward, should be: tcp:hostport1:guestport1,udp:hostport2:guestport2,...");
+            }
+            params.append(",hostfwd=")
+                    .append(parts[0])
+                    .append("::")
+                    .append(parts[1])
+                    .append("-:")
+                    .append(parts[2]);
+        }
+        return params.toString();
+    }
+
+    private String getNetworkDeviceParams(String networkCard) {
+        String device = getNetworkDeviceName(networkCard);
+        String params = device + ",netdev=" + NETDEV_ID;
+        if (device.equals("pcnet") && !networkCard.contains("rombar=")) {
+            params += ",rombar=0";
+        }
+        return params;
+    }
+
+    private String getNetworkDeviceName(String networkCard) {
+        if (networkCard.equals("Default")) {
+            return getDefaultNetworkDeviceName();
+        }
+        if (networkCard.equals("virtio")) {
+            if ((LimboApplication.arch == Config.Arch.arm || LimboApplication.arch == Config.Arch.arm64)
+                    && getMachineType() != null
+                    && getMachineType().startsWith("virt")) {
+                return "virtio-net-device";
+            }
+            return "virtio-net-pci";
+        }
+        return networkCard;
+    }
+
+    private String getDefaultNetworkDeviceName() {
+        if (LimboApplication.arch == Config.Arch.arm || LimboApplication.arch == Config.Arch.arm64) {
+            String machineType = getMachineType();
+            if (machineType != null && machineType.startsWith("virt")) {
+                return "virtio-net-device";
+            }
+            return "smc91c111";
+        }
+        if (LimboApplication.arch == Config.Arch.sparc || LimboApplication.arch == Config.Arch.sparc64) {
+            return "lance";
+        }
+        return "e1000";
     }
 
     private String getHostFwd() {
