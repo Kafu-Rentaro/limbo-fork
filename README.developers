@@ -59,6 +59,10 @@ https://github.com/limboemu/limbo
     ./tools/fetch-qemu-11.sh --force
     # The script verifies the official release signature when gpg is installed.
     # Use --skip-verify only for local experiments.
+    # To configure QEMU 11.0.0 for Android after fetching the source:
+    ./tools/configure-qemu-11-android.sh --host arm64-v8a --guest x86_64-softmmu
+    # ARMv9-tuned host build plus virgl/OpenGL flags:
+    ./tools/configure-qemu-11-android.sh --host arm64-v8a --guest x86_64-softmmu --armv9 --virgl
     # example for version 5.1.0:
     wget http://download.qemu-project.org/qemu-5.1.0.tar.xz -P /tmp/
     tar -xJf /tmp/qemu-5.1.0.tar.xz

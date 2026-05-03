@@ -29,6 +29,7 @@
 - Android debug build/lint を GitHub Actions で実行する CI を追加した。
 - Windows 98/Me 向けに `VGA,vgamem_mb=64` の 3D-ready profile を追加し、QEMU 起動時に `-device VGA,vgamem_mb=64` として渡せるようにした。
 - QEMU 11 で削除済みの `-soundhw` / `-no-acpi` / `-no-hpet` を避け、`-audio driver=sdl,model=...` と `-machine acpi=off,hpet=off` を生成するようにした。
+- QEMU 11.0.0 を Android NDK/LLVM toolchain で configure する `tools/configure-qemu-11-android.sh` を追加した。
 
 ## 目標バージョン
 
