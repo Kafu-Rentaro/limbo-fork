@@ -63,6 +63,8 @@ https://github.com/limboemu/limbo
     ./tools/configure-qemu-11-android.sh --host arm64-v8a --guest x86_64-softmmu
     # ARMv9-tuned host build plus virgl/OpenGL flags:
     ./tools/configure-qemu-11-android.sh --host arm64-v8a --guest x86_64-softmmu --armv9 --virgl
+    # QEMU 11 dropped 32-bit host support. For ARM hosts, use arm64-v8a for
+    # ARMv8 and add --armv9 only for ARMv9-tuned native builds.
     # UI profiles prefer QEMU's current virtio-gpu GL device spelling
     # (virtio-gpu-gl-pci / virtio-vga-gl). The older
     # virtio-gpu-pci,virgl=on entry remains available for compatibility.

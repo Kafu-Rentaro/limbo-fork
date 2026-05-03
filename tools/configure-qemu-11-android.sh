@@ -21,7 +21,8 @@ Configure QEMU 11 for Android from:
   ${QEMU_DIR}
 
 Options:
-  --host ABI           Android host ABI: arm64-v8a, armeabi-v7a, x86, x86_64.
+  --host ABI           Android host ABI: arm64-v8a or x86_64. QEMU 11 no
+                       longer supports 32-bit hosts.
                        Default: ${BUILD_HOST}
   --guest TARGET       QEMU softmmu target. Default: ${BUILD_GUEST}
   --api LEVEL          Android API level. Default: ${NDK_PLATFORM_API}
@@ -136,6 +137,12 @@ if [[ ! -d "${TOOLCHAIN_BIN}" || ! -d "${SYSROOT}" ]]; then
     exit 1
 fi
 
+if [[ "${BUILD_HOST}" == "armeabi-v7a" || "${BUILD_HOST}" == "x86" ]]; then
+    printf 'Unsupported Android host ABI for QEMU 11: %s\n' "${BUILD_HOST}" >&2
+    printf 'QEMU 11 dropped 32-bit host support. Use arm64-v8a for ARMv8/ARMv9 or x86_64.\n' >&2
+    exit 2
+fi
+
 case "${BUILD_HOST}" in
     arm64-v8a)
         TARGET_TRIPLE="aarch64-linux-android"
@@ -144,16 +151,6 @@ case "${BUILD_HOST}" in
         if [[ "${USE_ARMV9}" == true ]]; then
             ARCH_CFLAGS="-march=armv9-a"
         fi
-        ;;
-    armeabi-v7a)
-        TARGET_TRIPLE="armv7a-linux-androideabi"
-        QEMU_CPU="arm"
-        ARCH_CFLAGS="-march=armv7-a -mfloat-abi=softfp -mfpu=vfpv3-d16"
-        ;;
-    x86)
-        TARGET_TRIPLE="i686-linux-android"
-        QEMU_CPU="i386"
-        ARCH_CFLAGS="-march=i686"
         ;;
     x86_64)
         TARGET_TRIPLE="x86_64-linux-android"
