@@ -362,6 +362,10 @@ private String getQemuLibrary() {
             cpu += ",-tsc";
         }
 
+        if (!usesMachineRuntimeProperties()) {
+            addLegacyMachineToggles(paramsList);
+        }
+
         if (cpu != null && !cpu.equals("Default")) {
             paramsList.add("-cpu");
             paramsList.add(cpu);
@@ -411,16 +415,29 @@ private String getQemuLibrary() {
         if (!supportsPcMachineProperties(machineType)) {
             return machineType;
         }
-        if (getMachine().getDisableAcpi() != 0) {
+        if (usesMachineRuntimeProperties() && getMachine().getDisableAcpi() != 0) {
             machineType = appendMachineProperty(machineType, "acpi", "off");
         }
-        if (getMachine().getDisableHPET() != 0) {
+        if (usesMachineRuntimeProperties() && getMachine().getDisableHPET() != 0) {
             machineType = appendMachineProperty(machineType, "hpet", "off");
         }
         if (usesModernAudioOptions() && "pcspk".equals(getSoundCard())) {
             machineType = appendMachineProperty(machineType, "pcspk-audiodev", AUDIO_DEVICE_ID);
         }
         return machineType;
+    }
+
+    private void addLegacyMachineToggles(ArrayList<String> paramsList) {
+        if (getMachine().getDisableAcpi() != 0) {
+            paramsList.add("-no-acpi");
+        }
+        if (getMachine().getDisableHPET() != 0) {
+            paramsList.add("-no-hpet");
+        }
+    }
+
+    private boolean usesMachineRuntimeProperties() {
+        return LimboApplication.getQemuVersion() >= 90000;
     }
 
     private boolean supportsPcMachineProperties(String machineType) {

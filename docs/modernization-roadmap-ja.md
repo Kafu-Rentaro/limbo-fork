@@ -28,7 +28,7 @@
 - Windows 98/Me、2000/XP、7、10、11 + 3D 向けの x86 guest profile 適用 UI を追加した。
 - Android debug build/lint を GitHub Actions で実行する CI を追加した。
 - Windows 98/Me 向けに `VGA,vgamem_mb=64` の 3D-ready profile を追加し、QEMU 起動時に `-device VGA,vgamem_mb=64` として渡せるようにした。
-- QEMU 11 で削除済みの `-soundhw` / `-no-acpi` / `-no-hpet` を避け、QEMU 7.1+ では `-audio driver=sdl,model=...` と `-machine acpi=off,hpet=off` を生成するようにした。
+- QEMU 11 で削除済みの `-soundhw` / `-no-acpi` / `-no-hpet` を避け、QEMU 7.1+ では `-audio driver=sdl,model=...`、QEMU 9.0+ では `-machine acpi=off,hpet=off` を生成するようにした。
 - QEMU 11.0.0 を Android NDK/LLVM toolchain で configure する `tools/configure-qemu-11-android.sh` を追加した。
 - QEMU network runtime options を `-net` から `-netdev ... -device ...` へ移行し、`virtio` NIC を arch/machine に応じた device 名へ解決するようにした。
 - `virtio` / `scsi` hard disk runtime options を `-drive if=none,id=...` + `-device virtio-blk-*` / `scsi-hd` 形式へ移行した。
