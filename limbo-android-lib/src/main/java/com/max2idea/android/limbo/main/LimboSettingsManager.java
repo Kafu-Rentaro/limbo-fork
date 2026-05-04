@@ -20,7 +20,6 @@ package com.max2idea.android.limbo.main;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -40,6 +39,9 @@ import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import androidx.appcompat.app.AlertDialog;
+
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.limbo.emu.lib.R;
 import com.max2idea.android.limbo.network.NetworkUtils;
 import com.max2idea.android.limbo.toast.ToastUtils;
@@ -303,7 +305,7 @@ public class LimboSettingsManager extends PreferenceActivity {
 
     public void promptVNCPass(final Activity activity) {
         final AlertDialog alertDialog;
-        alertDialog = new AlertDialog.Builder(activity).create();
+        alertDialog = new MaterialAlertDialogBuilder(activity).create();
         alertDialog.setTitle(getString(R.string.VNCPassword));
 
         TextView textView = new TextView(activity);
@@ -352,6 +354,7 @@ public class LimboSettingsManager extends PreferenceActivity {
                 LimboSettingsManager.setVNCPass(activity, null);
             }
         });
+        alertDialog.setButton(DialogInterface.BUTTON_NEUTRAL, "", (DialogInterface.OnClickListener) null);
 
 
         alertDialog.setOnCancelListener(new DialogInterface.OnCancelListener() {

@@ -21,6 +21,8 @@ object AdaptiveVmLayout {
     private const val WIDE_DISPLAY_WEIGHT = 75f
     private const val WIDE_CONTROL_WEIGHT = 25f
     private const val FOLDED_CONTROL_WEIGHT = 50f
+    private const val FULL_KEYBOARD_MIN_CONTROL_WEIGHT = 34f
+    private const val FULL_KEYBOARD_COMPACT_CONTROL_WEIGHT = 42f
     private const val COMPACT_DISPLAY_WEIGHT = 100f
 
     @JvmStatic
@@ -56,6 +58,29 @@ object AdaptiveVmLayout {
         posture: Int,
         hingeAngleDegrees: Float
     ): Float {
+        return apply(
+            displayContainer,
+            controlGap,
+            orientation,
+            widthPx,
+            heightPx,
+            posture,
+            hingeAngleDegrees,
+            false
+        )
+    }
+
+    @JvmStatic
+    fun apply(
+        displayContainer: View?,
+        controlGap: View?,
+        orientation: Int,
+        widthPx: Int,
+        heightPx: Int,
+        posture: Int,
+        hingeAngleDegrees: Float,
+        fullKeyboardActive: Boolean
+    ): Float {
         if (displayContainer == null || controlGap == null) {
             return 0f
         }
@@ -66,6 +91,7 @@ object AdaptiveVmLayout {
 
         val flatControlWeight = when {
             orientation == Configuration.ORIENTATION_PORTRAIT -> PORTRAIT_CONTROL_WEIGHT
+            fullKeyboardActive -> FULL_KEYBOARD_COMPACT_CONTROL_WEIGHT
             isLargeOrFoldableLike -> WIDE_CONTROL_WEIGHT
             else -> 0f
         }
@@ -74,7 +100,7 @@ object AdaptiveVmLayout {
             else -> WIDE_CONTROL_WEIGHT
         }
         val isFoldedPosture = posture == POSTURE_TABLETOP || posture == POSTURE_BOOK
-        val controlWeight = when {
+        val baseControlWeight = when {
             isFoldedPosture && hingeAngleDegrees in 30f..165f -> {
                 val openFraction = ((hingeAngleDegrees - 30f) / 135f).coerceIn(0f, 1f)
                 FOLDED_CONTROL_WEIGHT + (foldedTargetControlWeight - FOLDED_CONTROL_WEIGHT) * openFraction
@@ -82,7 +108,13 @@ object AdaptiveVmLayout {
             isFoldedPosture -> FOLDED_CONTROL_WEIGHT
             else -> flatControlWeight
         }
+        val controlWeight = if (fullKeyboardActive && baseControlWeight > 0f) {
+            maxOf(baseControlWeight, FULL_KEYBOARD_MIN_CONTROL_WEIGHT)
+        } else {
+            baseControlWeight
+        }
         val displayWeight = when {
+            fullKeyboardActive && controlWeight > 0f -> 100f - controlWeight
             isFoldedPosture && controlWeight > 0f -> 100f - controlWeight
             controlWeight == 0f -> COMPACT_DISPLAY_WEIGHT
             orientation == Configuration.ORIENTATION_PORTRAIT -> PORTRAIT_DISPLAY_WEIGHT

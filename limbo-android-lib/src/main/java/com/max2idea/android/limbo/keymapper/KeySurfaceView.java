@@ -909,6 +909,22 @@ public class KeySurfaceView extends SurfaceView implements SurfaceHolder.Callbac
             text = "Menu";
         else if (keycode == KeyEvent.KEYCODE_FUNCTION)
             text = "Fn";
+        else if (keycode >= KeyEvent.KEYCODE_NUMPAD_0 && keycode <= KeyEvent.KEYCODE_NUMPAD_9)
+            text = "N" + (keycode - KeyEvent.KEYCODE_NUMPAD_0);
+        else if (keycode == KeyEvent.KEYCODE_NUMPAD_DIVIDE)
+            text = "N/";
+        else if (keycode == KeyEvent.KEYCODE_NUMPAD_MULTIPLY)
+            text = "N*";
+        else if (keycode == KeyEvent.KEYCODE_NUMPAD_SUBTRACT)
+            text = "N-";
+        else if (keycode == KeyEvent.KEYCODE_NUMPAD_ADD)
+            text = "N+";
+        else if (keycode == KeyEvent.KEYCODE_NUMPAD_ENTER)
+            text = "NEnt";
+        else if (keycode == KeyEvent.KEYCODE_NUMPAD_DOT)
+            text = "N.";
+        else if (keycode == KeyEvent.KEYCODE_NUMPAD_EQUALS)
+            text = "N=";
         else if (unicodeChar > 0)
             return ((char) unicodeChar) + "";
         else
