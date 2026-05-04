@@ -175,7 +175,15 @@ if [[ "${USE_ARMV9}" == true && "${BUILD_HOST}" != "arm64-v8a" ]]; then
     printf 'Warning: --armv9 only affects arm64-v8a host builds; current host is %s.\n' "${BUILD_HOST}" >&2
 fi
 
-BUILD_DIR="${ROOT_DIR}/build/qemu-android/${BUILD_HOST}-${BUILD_GUEST}"
+HOST_PROFILE="${BUILD_HOST}"
+if [[ "${BUILD_HOST}" == "arm64-v8a" ]]; then
+    if [[ "${USE_ARMV9}" == true ]]; then
+        HOST_PROFILE="armv9-a"
+    else
+        HOST_PROFILE="armv8-a"
+    fi
+fi
+BUILD_DIR="${ROOT_DIR}/build/qemu-android/${BUILD_HOST}-${HOST_PROFILE}-${BUILD_GUEST}"
 mkdir -p "${BUILD_DIR}"
 
 export AR="${TOOLCHAIN_BIN}/llvm-ar"
@@ -229,6 +237,7 @@ fi
 
 printf 'Configuring QEMU for Android\n'
 printf '  host ABI: %s\n' "${BUILD_HOST}"
+printf '  profile:  %s\n' "${HOST_PROFILE}"
 printf '  guest:    %s\n' "${BUILD_GUEST}"
 printf '  API:      %s\n' "${NDK_PLATFORM_API}"
 printf '  host tag: %s\n' "${HOST_TAG}"
