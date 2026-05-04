@@ -1,7 +1,4 @@
-# Limbo Emulator (QEMU) for Android
-#
-# For APK Downloads, Guides, and Help visit:
-# https://virtualmachinery.weebly.com
+# Limbo Emulator (QEMU) Fork
 
 Limbo is a QEMU-based emulator for Android supports emulation for these architectures:
 	x86/x86_64
@@ -13,6 +10,4 @@ For developers read file README.developers for instructions on how to compile on
 	and other useful information.
 
 For the planned QEMU 11.0.0, Kotlin, Material 3 Expressive, foldable, full keyboard,
-and 3D acceleration modernization work, see:
-
-	docs/modernization-roadmap-ja.md
+and 3D acceleration modernization work
