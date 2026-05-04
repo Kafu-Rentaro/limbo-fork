@@ -32,7 +32,6 @@ import com.max2idea.android.limbo.main.LimboApplication
 import com.max2idea.android.limbo.main.LimboFileManager
 import com.max2idea.android.limbo.toast.ToastUtils
 import java.io.File
-import java.io.FileNotFoundException
 import java.io.FileOutputStream
 
 object BIOSImporter {
@@ -70,10 +69,7 @@ object BIOSImporter {
             val buffer = ByteArray(32768)
             var totalBytes = 0
 
-            val stream = FileUtils.getStreamFromFilePath(importFilePath)
-                ?: throw FileNotFoundException(importFilePath)
-
-            stream.use { input ->
+            FileUtils.getStreamFromFilePath(importFilePath).use { input ->
                 FileOutputStream(target).use { output ->
                     while (true) {
                         val bytesRead = input.read(buffer, 0, buffer.size)
