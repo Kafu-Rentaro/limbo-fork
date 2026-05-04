@@ -2,7 +2,7 @@ apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
 
 android {
-    namespace = 'com.limbo.emu.main.arm'
+    namespace = 'jp.oso.limbofork.fuwa.arm'
     compileSdk = 36
 
     defaultConfig {

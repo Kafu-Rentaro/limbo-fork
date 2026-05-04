@@ -298,12 +298,12 @@ https://github.com/limboemu/limbo
         # for x86 guest and ARM64 phone:
         export BUILD_HOST=arm64-v8a
         export BUILD_GUEST=x86_64-softmmu
-        make ndk-gdb PKG_NAME=com.limbo.emu.main
+        make ndk-gdb PKG_NAME=jp.oso.limbofork.fuwa
 
         # for other guests use respectively:
-        make ndk-gdb PKG_NAME=com.limbo.emu.main.arm
-		make ndk-gdb PKG_NAME=com.limbo.emu.main.sparc
-		make ndk-gdb PKG_NAME=com.limbo.emu.main.ppc
+        make ndk-gdb PKG_NAME=jp.oso.limbofork.fuwa.arm
+		make ndk-gdb PKG_NAME=jp.oso.limbofork.fuwa.sparc
+		make ndk-gdb PKG_NAME=jp.oso.limbofork.fuwa.ppc
 
         Note: you might want to disable signal handling in gdb:
         handle all nostop noprint

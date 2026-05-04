@@ -83,7 +83,7 @@ class LimboApplication : Application() {
         @JvmStatic
         fun setupEnv(context: Context) {
             try {
-                val packageName = context.javaClass.`package`?.name ?: context.packageName
+                val packageName = context.packageName
                 val packageInfo = context.packageManager.getPackageInfo(
                     packageName,
                     PackageManager.GET_META_DATA,
@@ -111,7 +111,7 @@ class LimboApplication : Application() {
         fun getUserId(context: Context): String {
             var userId = "None"
             try {
-                val packageName = context.javaClass.`package`?.name ?: context.packageName
+                val packageName = context.packageName
                 val appInfo = context.packageManager.getApplicationInfo(
                     packageName,
                     PackageManager.GET_META_DATA,

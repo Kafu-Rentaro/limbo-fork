@@ -5,7 +5,7 @@
 
     <application android:label="@string/app_name">
         <activity
-            android:name="com.limbo.emu.main.LimboEmuActivity"
+            android:name="jp.oso.limbofork.fuwa.LimboEmuActivity"
             android:configChanges="mcc|mnc|locale|touchscreen|keyboard|keyboardHidden|navigation|screenLayout|fontScale|uiMode|orientation|screenSize|smallestScreenSize"
             android:exported="true"
             android:label="@string/app_short_name"

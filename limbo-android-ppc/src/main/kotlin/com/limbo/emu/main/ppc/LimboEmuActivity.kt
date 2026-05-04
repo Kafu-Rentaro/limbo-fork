@@ -1,4 +1,4 @@
-package com.limbo.emu.main.ppc
+package jp.oso.limbofork.fuwa.ppc
 
 import android.os.Bundle
 import com.max2idea.android.limbo.links.LinksManager
