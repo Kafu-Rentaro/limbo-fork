@@ -73,11 +73,12 @@ class MachineService : Service() {
         }
 
         if (action == Config.ACTION_START) {
-            if (MachineController.getInstance().getMachine() == null) {
+            val machine = MachineController.getInstance().machine
+            if (machine == null) {
                 return START_NOT_STICKY
             }
 
-            var text = "${MachineController.getInstance().getMachine().getName()}: VM Running"
+            var text = "${machine.getName()}: VM Running"
             if (MachineController.getInstance().isVNCEnabled()) {
                 text += " - ${getString(R.string.vncServer)}"
                 text += ": ${NetworkUtils.getVNCAddress(this)}:${Config.defaultVNCPort}"
@@ -110,7 +111,8 @@ class MachineService : Service() {
             ex.printStackTrace()
         }
 
-        Log.d(TAG, "Starting VM: ${MachineController.getInstance().getMachine().getName()}")
+        val machine = MachineController.getInstance().machine ?: return
+        Log.d(TAG, "Starting VM: ${machine.getName()}")
         setupLocks()
 
         MachineController.getInstance().onServiceStarted()
@@ -145,7 +147,7 @@ class MachineService : Service() {
     }
 
     private fun setUpAsForeground(text: String) {
-        if (MachineController.getInstance().getMachine() == null) {
+        if (MachineController.getInstance().machine == null) {
             Log.w(TAG, "No Machine selected")
             return
         }
