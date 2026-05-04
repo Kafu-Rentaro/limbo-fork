@@ -6,7 +6,9 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.limbo.emu.main.sparc"
+        applicationId = "jp.oso.limbofork.fuwa.sparc"
+        versionCode = 1
+        versionName = "0.0.1-sparc"
         minSdk = 23
         targetSdk = 36
         ndk { abiFilters "armeabi-v7a","arm64-v8a", "x86", "x86_64" }
