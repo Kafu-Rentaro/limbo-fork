@@ -7,6 +7,19 @@ object GraphicsCapabilities {
     const val VIRTIO_GPU_PCI = "virtio-gpu-pci"
     const val VIRTIO_GPU_GL_PCI = "virtio-gpu-gl-pci"
     const val VIRTIO_GPU_PCI_VIRGL = "virtio-gpu-pci,virgl=on"
+    private val qemu11VirglRuntimeLibraries = listOf(
+        "libSDL2.so",
+        "libepoxy.so",
+        "libffi.so",
+        "libgio-2.0.so",
+        "libglib-2.0.so",
+        "libgobject-2.0.so",
+        "libiconv.so",
+        "libpcre2-8.so",
+        "libpcre2-posix.so",
+        "libpixman-1.so",
+        "libvirglrenderer.so",
+    )
 
     @JvmStatic
     fun isDeviceBackedGpu(vga: String?): Boolean {
@@ -35,4 +48,8 @@ object GraphicsCapabilities {
             null
         }
     }
+
+    @JvmStatic
+    fun getQemu11RuntimeLibraries(qemuLibrary: String): List<String> =
+        listOf(qemuLibrary) + qemu11VirglRuntimeLibraries
 }

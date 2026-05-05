@@ -20,24 +20,29 @@ Copyright (C) Max Kastanas 2012
 #ifndef SDL_LIMBO_AUDIO_H
 #define SDL_LIMBO_AUDIO_H
 
-int isAaudioEnabled();
-        
-void createAAudioDevice(int sampleRate, int channelCount, int desiredBufferFrames);	
+#include <jni.h>
+
+int isAaudioEnabled(void);
+
+void createAAudioDevice(int sampleRate, int channelCount, int desiredBufferFrames);
 
 void destroyAaudioDevice();
 
-void resampleAaudio() ;
+void resampleAaudio(void);
 
-void writeAaudio() ;
+void writeAaudio(void);
 
-void writeAaudioStream();
+void writeAaudioStream(void);
 
-void writeAaudioQueue() ;
+void writeAaudioQueue(void);
 
-void* getAaudioBuffer();
+void* getAaudioBuffer(void);
 
 JNIEXPORT void JNICALL Java_com_max2idea_android_limbo_jni_VMExecutor_nativeEnableAaudio(
-        JNIEnv* env, jobject thiz, int value);
+        JNIEnv* env,
+        jobject thiz,
+        jint value,
+        jstring aaudioLibName,
+        jstring aaudioLibFullpath);
         
 #endif
-

@@ -1,0 +1,118 @@
+diff --git a/meson.build b/meson.build
+index 8b6d8e9a6d..d1a57af0ef 100644
+--- a/meson.build
++++ b/meson.build
+@@ -80,6 +80,7 @@
+ python = import('python').find_installation()
+
+ cc = meson.get_compiler('c')
++host_is_android = cc.get_define('__ANDROID__') != ''
+ all_languages = ['c']
+ enable_cpp = host_os == 'windows' or get_option('plugins')
+ if enable_cpp and add_languages('cpp', required: false, native: false)
+@@ -1358,7 +1359,7 @@
+ if host_os != 'windows'
+   have_shm_open = cc.has_function('shm_open')
+   if not have_shm_open
+-    rt = cc.find_library('rt', required: true)
++    rt = cc.find_library('rt', required: not host_is_android)
+   endif
+ endif
+
+@@ -4444,14 +4445,24 @@
+       exe_name += '-unsigned'
+     endif
+
+-    emulator = executable(exe_name, exe['sources'],
+-               install: true,
+-               c_args: c_args,
+-               dependencies: arch_deps + exe['dependencies'],
+-               objects: lib.extract_all_objects(recursive: true),
+-               link_depends: [block_syms, qemu_syms],
+-               link_args: link_args,
+-               win_subsystem: exe['win_subsystem'])
++    if host_is_android and target_type == 'system'
++      emulator = shared_library(exe_name, exe['sources'],
++                 install: true,
++                 c_args: c_args,
++                 dependencies: arch_deps + exe['dependencies'],
++                 objects: lib.extract_all_objects(recursive: true),
++                 link_depends: [block_syms, qemu_syms],
++                 link_args: link_args)
++    else
++      emulator = executable(exe_name, exe['sources'],
++                 install: true,
++                 c_args: c_args,
++                 dependencies: arch_deps + exe['dependencies'],
++                 objects: lib.extract_all_objects(recursive: true),
++                 link_depends: [block_syms, qemu_syms],
++                 link_args: link_args,
++                 win_subsystem: exe['win_subsystem'])
++    endif
+
+     if host_os == 'darwin'
+       icon = 'pc-bios/qemu.rsrc'
+diff --git a/util/oslib-posix.c b/util/oslib-posix.c
+index ebd46903ff..b15d8be0c2 100644
+--- a/util/oslib-posix.c
++++ b/util/oslib-posix.c
+@@ -984,20 +984,30 @@
+
+ int qemu_shm_alloc(size_t size, Error **errp)
+ {
++#ifdef __ANDROID__
++    g_autofree char *shm_path = NULL;
++#else
+     g_autoptr(GString) shm_name = g_string_new(NULL);
+-    int fd, oflag, cur_sequence;
++    int oflag;
++#endif
++    int fd, cur_sequence;
+     static int sequence;
+     mode_t mode;
+
+     cur_sequence = qatomic_fetch_inc(&sequence);
+
++#ifdef __ANDROID__
++    mode = 0600;
++#else
+     /*
+      * Let's use `mode = 0` because we don't want other processes to open our
+      * memory unless we share the file descriptor with them.
+      */
+     mode = 0;
+     oflag = O_RDWR | O_CREAT | O_EXCL;
++#endif
+
++#ifndef __ANDROID__
+     /*
+      * Some operating systems allow creating anonymous POSIX shared memory
+      * objects (e.g. FreeBSD provides the SHM_ANON constant), but this is not
+@@ -1009,7 +1019,19 @@
+      */
+     g_string_printf(shm_name, "/qemu-" FMT_pid "-shm-%d", getpid(),
+                     cur_sequence);
++#endif
+
++#ifdef __ANDROID__
++    shm_path = g_strdup_printf("%s/qemu-" FMT_pid "-shm-%d-XXXXXX",
++                               g_get_tmp_dir(), getpid(), cur_sequence);
++    fd = g_mkstemp_full(shm_path, O_RDWR | O_CLOEXEC, mode);
++    if (fd < 0) {
++        error_setg_errno(errp, errno,
++                         "failed to create Android shared memory file");
++        return -1;
++    }
++    unlink(shm_path);
++#else
+     fd = shm_open(shm_name->str, oflag, mode);
+     if (fd < 0) {
+         error_setg_errno(errp, errno,
+@@ -1023,6 +1045,7 @@
+      * there are file descriptors pointing to it.
+      */
+     shm_unlink(shm_name->str);
++#endif
+
+     if (ftruncate(fd, size) == -1) {
+         error_setg_errno(errp, errno,

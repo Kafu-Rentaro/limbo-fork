@@ -20,7 +20,6 @@ Copyright (C) Max Kastanas 2012
 #define SDL_LIMBO_MOUSE_H
 
 #include <jni.h>
-#include "video/android/SDL_androidvideo.h"
 
 JNIEXPORT void JNICALL Java_com_max2idea_android_limbo_jni_VMExecutor_nativeMouseEvent(
         JNIEnv* env, jobject thiz, int button, int action, int relative, 
@@ -30,4 +29,3 @@ JNIEXPORT void JNICALL Java_com_max2idea_android_limbo_jni_VMExecutor_nativeMous
         JNIEnv* env, jobject thiz,  int xmin, int xmax, int ymin, int ymax);
 
 #endif
-

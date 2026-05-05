@@ -20,10 +20,8 @@ Copyright (C) Max Kastanas 2012
 #define SDL_LIMBO_SCREEN_H
 
 #include <jni.h>
-#include "video/android/SDL_androidvideo.h"
 
 JNIEXPORT void JNICALL Java_com_max2idea_android_limbo_jni_VMExecutor_nativeFullscreen(
         JNIEnv* env, jobject thiz);
 
 #endif
-

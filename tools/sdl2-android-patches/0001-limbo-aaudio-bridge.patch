@@ -1,0 +1,127 @@
+--- a/src/core/android/SDL_android.c
++++ b/src/core/android/SDL_android.c
+@@ -1475,6 +1475,52 @@
+ static void *audioBufferPinned = NULL;
+ static int captureBufferFormat = 0;
+ static jobject captureBuffer = NULL;
++
++#if defined(__LIMBO__) && defined(__ENABLE_AAUDIO__)
++typedef int (*limbo_is_aaudio_enabled_t)(void);
++typedef void (*limbo_create_aaudio_device_t)(int, int, int);
++typedef void (*limbo_destroy_aaudio_device_t)(void);
++typedef void (*limbo_write_aaudio_t)(void);
++typedef void *(*limbo_get_aaudio_buffer_t)(void);
++
++static int limboAaudioActive = 0;
++static void *limboAaudioHandle = NULL;
++static limbo_is_aaudio_enabled_t limboIsAaudioEnabled = NULL;
++static limbo_create_aaudio_device_t limboCreateAaudioDevice = NULL;
++static limbo_destroy_aaudio_device_t limboDestroyAaudioDevice = NULL;
++static limbo_write_aaudio_t limboWriteAaudio = NULL;
++static limbo_get_aaudio_buffer_t limboGetAaudioBuffer = NULL;
++
++static void Android_Limbo_LoadAaudioSymbols(void)
++{
++    if (limboAaudioHandle != NULL) {
++        return;
++    }
++
++    limboAaudioHandle = dlopen("libcompat-SDL2-addons.so", RTLD_LAZY);
++    if (limboAaudioHandle == NULL) {
++        SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION,
++                    "Limbo AAudio bridge unavailable: %s",
++                    dlerror());
++        return;
++    }
++
++    limboIsAaudioEnabled = (limbo_is_aaudio_enabled_t)dlsym(limboAaudioHandle, "isAaudioEnabled");
++    limboCreateAaudioDevice = (limbo_create_aaudio_device_t)dlsym(limboAaudioHandle, "createAAudioDevice");
++    limboDestroyAaudioDevice = (limbo_destroy_aaudio_device_t)dlsym(limboAaudioHandle, "destroyAaudioDevice");
++    limboWriteAaudio = (limbo_write_aaudio_t)dlsym(limboAaudioHandle, "writeAaudio");
++    limboGetAaudioBuffer = (limbo_get_aaudio_buffer_t)dlsym(limboAaudioHandle, "getAaudioBuffer");
++
++    if (limboIsAaudioEnabled == NULL ||
++        limboCreateAaudioDevice == NULL ||
++        limboDestroyAaudioDevice == NULL ||
++        limboWriteAaudio == NULL ||
++        limboGetAaudioBuffer == NULL) {
++        SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION,
++                    "Limbo AAudio bridge symbols are incomplete");
++    }
++}
++#endif
+
+ static void Android_JNI_GetAudioDevices(int *devices, int *length, int max_len, int is_input)
+ {
+@@ -1550,6 +1596,28 @@
+         return SDL_SetError("Unsupported audio format: 0x%x", spec->format);
+     }
+
++#if defined(__LIMBO__) && defined(__ENABLE_AAUDIO__)
++    if (!iscapture && audioformat == ENCODING_PCM_16BIT) {
++        Android_Limbo_LoadAaudioSymbols();
++        if (limboIsAaudioEnabled != NULL &&
++            limboIsAaudioEnabled() &&
++            limboCreateAaudioDevice != NULL &&
++            limboGetAaudioBuffer != NULL) {
++            limboCreateAaudioDevice(spec->freq, spec->channels, spec->samples);
++            audioBufferFormat = audioformat;
++            audioBuffer = NULL;
++            audioBufferPinned = limboGetAaudioBuffer();
++            limboAaudioActive = audioBufferPinned != NULL;
++            if (limboAaudioActive) {
++                return 0;
++            }
++            if (limboDestroyAaudioDevice != NULL) {
++                limboDestroyAaudioDevice();
++            }
++        }
++    }
++#endif
++
+     if (iscapture) {
+         __android_log_print(ANDROID_LOG_VERBOSE, "SDL", "SDL audio: opening device for capture");
+         result = (*env)->CallStaticObjectMethod(env, mAudioManagerClass, midCaptureOpen, spec->freq, audioformat, spec->channels, spec->samples, device_id);
+@@ -1689,11 +1757,23 @@
+
+ void *Android_JNI_GetAudioBuffer(void)
+ {
++#if defined(__LIMBO__) && defined(__ENABLE_AAUDIO__)
++    if (limboAaudioActive && limboGetAaudioBuffer != NULL) {
++        return limboGetAaudioBuffer();
++    }
++#endif
+     return audioBufferPinned;
+ }
+
+ void Android_JNI_WriteAudioBuffer(void)
+ {
++#if defined(__LIMBO__) && defined(__ENABLE_AAUDIO__)
++    if (limboAaudioActive && limboWriteAaudio != NULL) {
++        limboWriteAaudio();
++        return;
++    }
++#endif
++
+     JNIEnv *env = Android_JNI_GetEnv();
+
+     switch (audioBufferFormat) {
+@@ -1807,6 +1887,18 @@
+
+ void Android_JNI_CloseAudioDevice(const int iscapture)
+ {
++#if defined(__LIMBO__) && defined(__ENABLE_AAUDIO__)
++    if (!iscapture && limboAaudioActive) {
++        if (limboDestroyAaudioDevice != NULL) {
++            limboDestroyAaudioDevice();
++        }
++        limboAaudioActive = 0;
++        audioBuffer = NULL;
++        audioBufferPinned = NULL;
++        return;
++    }
++#endif
++
+     JNIEnv *env = Android_JNI_GetEnv();
+
+     if (iscapture) {

@@ -102,8 +102,19 @@ class VMExecutor(machineController: MachineController) : MachineExecutor(machine
         }
     }
 
+    private fun getEffectiveGuestArch(): Config.Arch {
+        if (LimboApplication.arch != Config.Arch.x86 && LimboApplication.arch != Config.Arch.x86_64) {
+            return LimboApplication.arch
+        }
+        return when (currentMachine.getArch()?.trim()?.lowercase()) {
+            "x86", "i386", "i486", "i586", "i686" -> Config.Arch.x86
+            "x86_64", "x64", "amd64" -> Config.Arch.x86_64
+            else -> LimboApplication.arch
+        }
+    }
+
     private fun getQemuLibrary(): String =
-        when (LimboApplication.arch) {
+        when (getEffectiveGuestArch()) {
             Config.Arch.x86 -> "libqemu-system-i386.so"
             Config.Arch.x86_64 -> "libqemu-system-x86_64.so"
             Config.Arch.arm -> "libqemu-system-arm.so"
@@ -123,6 +134,7 @@ class VMExecutor(machineController: MachineController) : MachineExecutor(machine
     private fun prepareParams(context: Context): Array<Any?> {
         val paramsList = ArrayList<String>()
         paramsList.add(getQemuLibrary())
+        validateNativeRuntime(context)
         validateGraphicsOptions(context)
         addUIOptions(context, paramsList)
         addCpuBoardOptions(paramsList)
@@ -137,6 +149,21 @@ class VMExecutor(machineController: MachineController) : MachineExecutor(machine
         addAdvancedOptions(paramsList)
         addAccelerationOptions(paramsList)
         return paramsList.map { it as Any? }.toTypedArray()
+    }
+
+    private fun validateNativeRuntime(context: Context) {
+        val nativeLibDir = FileUtils.getNativeLibDir(context)
+        val missingLibraries = GraphicsCapabilities.getQemu11RuntimeLibraries(getQemuLibrary()).filter {
+            !File(nativeLibDir, it).isFile
+        }
+        if (missingLibraries.isNotEmpty()) {
+            throw IllegalStateException(
+                context.getString(
+                    R.string.missing_native_libraries_runtime,
+                    missingLibraries.joinToString(", "),
+                ),
+            )
+        }
     }
 
     private fun validateGraphicsOptions(context: Context) {
@@ -284,12 +311,10 @@ class VMExecutor(machineController: MachineController) : MachineExecutor(machine
             cpu = "'$cpu'"
         }
 
-        if (
-            currentMachine.getDisableTSC() == 1 &&
-            (LimboApplication.arch == Config.Arch.x86 || LimboApplication.arch == Config.Arch.x86_64)
-        ) {
+        val guestArch = getEffectiveGuestArch()
+        if (currentMachine.getDisableTSC() == 1 && (guestArch == Config.Arch.x86 || guestArch == Config.Arch.x86_64)) {
             if (cpu == null || cpu == "Default") {
-                cpu = if (LimboApplication.arch == Config.Arch.x86) {
+                cpu = if (guestArch == Config.Arch.x86) {
                     "qemu32"
                 } else {
                     "qemu64"
@@ -327,9 +352,10 @@ class VMExecutor(machineController: MachineController) : MachineExecutor(machine
     }
 
     private fun getMachineType(): String? {
+        val guestArch = getEffectiveGuestArch()
         var machineType = currentMachine.getMachineType()
         if (
-            (LimboApplication.arch == Config.Arch.x86 || LimboApplication.arch == Config.Arch.x86_64) &&
+            (guestArch == Config.Arch.x86 || guestArch == Config.Arch.x86_64) &&
             machineType == null
         ) {
             machineType = "pc"
@@ -377,7 +403,8 @@ class VMExecutor(machineController: MachineController) : MachineExecutor(machine
         LimboApplication.getQemuVersion() >= 90000
 
     private fun supportsPcMachineProperties(machineType: String?): Boolean {
-        if (LimboApplication.arch == Config.Arch.x86 || LimboApplication.arch == Config.Arch.x86_64) {
+        val guestArch = getEffectiveGuestArch()
+        if (guestArch == Config.Arch.x86 || guestArch == Config.Arch.x86_64) {
             return true
         }
         return machineType != null && (machineType.startsWith("pc") || machineType.startsWith("q35"))

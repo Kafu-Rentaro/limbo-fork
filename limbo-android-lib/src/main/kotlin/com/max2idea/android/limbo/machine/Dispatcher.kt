@@ -46,6 +46,7 @@ object Dispatcher : ViewListener {
             MachineProperty.NON_REMOVABLE_DRIVE,
             MachineProperty.REMOVABLE_DRIVE -> setDrive(value)
             MachineProperty.MEDIA_INTERFACE -> setDriveMediaInterface(value)
+            MachineProperty.ARCH -> machine.setArch(convertString(property, value))
             MachineProperty.SOUNDCARD -> machine.setSoundCard(convertString(property, value))
             MachineProperty.CPU -> machine.setCpu(convertString(property, value))
             MachineProperty.MEMORY -> machine.setMemory(convertInt(property, value))

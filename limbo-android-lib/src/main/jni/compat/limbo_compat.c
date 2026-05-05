@@ -1,5 +1,7 @@
 
 #include <jni.h>
+#include <malloc.h>
+#include <string.h>
 #include <unistd.h>
 #include "limbo_logutils.h"
 #include "limbo_compat.h"
@@ -33,12 +35,9 @@ valloc (size_t size)
 const char* strchrnul(const char* s, int c) {
     char *str = strchr(s, c);
     if(str == NULL) {
-        int length = strlen(s);
-        int endofs = s + length;
-        return endofs;
+        return s + strlen(s);
     }
     return str;
 }
-
 
 

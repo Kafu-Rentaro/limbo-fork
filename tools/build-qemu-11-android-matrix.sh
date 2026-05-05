@@ -9,7 +9,11 @@ BUILD_PROFILES=("armv8" "armv9")
 BUILD_GUESTS=("i386-softmmu" "x86_64-softmmu")
 NDK_PLATFORM_API="${NDK_PLATFORM_API:-23}"
 NDK_ROOT="${NDK_ROOT:-${ANDROID_NDK_HOME:-${ANDROID_NDK_ROOT:-}}}"
+PYTHON_BIN="${PYTHON_BIN:-${PYTHON:-}}"
+NINJA_BIN="${NINJA_BIN:-}"
+DEPS_PREFIX="${QEMU_DEPS_PREFIX:-}"
 USE_VIRGL=false
+ALLOW_DOWNLOADS=false
 DRY_RUN=false
 RUN_BUILD=false
 
@@ -28,7 +32,11 @@ Options:
                        Default: i386-softmmu and x86_64-softmmu.
   --api LEVEL          Android API level. Default: ${NDK_PLATFORM_API}
   --ndk PATH           Android NDK root.
+  --python PATH        Python for QEMU configure.
+  --ninja PATH         Ninja executable.
+  --deps-prefix PATH   Prefix containing Android target dependencies.
   --virgl              Enable OpenGL and virglrenderer configure flags.
+  --allow-downloads    Let QEMU configure download missing Python/build deps.
   --dry-run            Print configure commands without running configure.
   --build              Run make after configure.
   -h, --help           Show this help.
@@ -100,8 +108,23 @@ while (($#)); do
             shift
             NDK_ROOT="${1:?Missing value for --ndk}"
             ;;
+        --python)
+            shift
+            PYTHON_BIN="${1:?Missing value for --python}"
+            ;;
+        --ninja)
+            shift
+            NINJA_BIN="${1:?Missing value for --ninja}"
+            ;;
+        --deps-prefix)
+            shift
+            DEPS_PREFIX="${1:?Missing value for --deps-prefix}"
+            ;;
         --virgl)
             USE_VIRGL=true
+            ;;
+        --allow-downloads)
+            ALLOW_DOWNLOADS=true
             ;;
         --dry-run)
             DRY_RUN=true
@@ -142,11 +165,23 @@ for host in "${BUILD_HOSTS[@]}"; do
             if [[ -n "${NDK_ROOT}" ]]; then
                 args+=("--ndk" "${NDK_ROOT}")
             fi
+            if [[ -n "${PYTHON_BIN}" ]]; then
+                args+=("--python" "${PYTHON_BIN}")
+            fi
+            if [[ -n "${NINJA_BIN}" ]]; then
+                args+=("--ninja" "${NINJA_BIN}")
+            fi
+            if [[ -n "${DEPS_PREFIX}" ]]; then
+                args+=("--deps-prefix" "${DEPS_PREFIX}")
+            fi
             if [[ "${host}" == "arm64-v8a" && "${profile}" == "armv9" ]]; then
                 args+=("--armv9")
             fi
             if [[ "${USE_VIRGL}" == true ]]; then
                 args+=("--virgl")
+            fi
+            if [[ "${ALLOW_DOWNLOADS}" == true ]]; then
+                args+=("--allow-downloads")
             fi
             if [[ "${DRY_RUN}" == true ]]; then
                 args+=("--dry-run")

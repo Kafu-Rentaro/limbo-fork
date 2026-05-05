@@ -15,6 +15,7 @@ object GuestOsProfileManager {
         GuestOsProfile(
             title = "Windows 98 / Me",
             description = "i440fx, IDE, SB16, Cirrus VGA",
+            arch = "x86",
             machineType = "pc",
             cpu = "pentium2",
             memoryMb = 128,
@@ -31,6 +32,7 @@ object GuestOsProfileManager {
         GuestOsProfile(
             title = "Windows 98 / Me + 3D ready",
             description = "VGA 64MB, SDL, BOXV9x/SoftGPU/qemu-3dfx path",
+            arch = "x86",
             machineType = "pc,hpet=off,usb=off",
             cpu = "pentium2",
             memoryMb = 256,
@@ -52,6 +54,7 @@ object GuestOsProfileManager {
         GuestOsProfile(
             title = "Windows 2000 / XP",
             description = "i440fx, IDE, AC97, VMware SVGA",
+            arch = "x86",
             machineType = "pc",
             cpu = "pentium3",
             memoryMb = 512,
@@ -68,6 +71,7 @@ object GuestOsProfileManager {
         GuestOsProfile(
             title = "Windows 7",
             description = "i440fx, SATA-like IDE baseline, e1000, std VGA",
+            arch = "x86_64",
             machineType = "pc",
             cpu = "core2duo",
             cpuCores = 2,
@@ -85,6 +89,7 @@ object GuestOsProfileManager {
         GuestOsProfile(
             title = "Windows 10",
             description = "q35, virtio storage/network, virtio GPU",
+            arch = "x86_64",
             machineType = "q35",
             cpu = "qemu64",
             cpuCores = 2,
@@ -103,6 +108,7 @@ object GuestOsProfileManager {
         GuestOsProfile(
             title = "Windows 11 + 3D",
             description = "q35, virtio, QEMU 11 virgl/SDL GL path",
+            arch = "x86_64",
             machineType = "q35",
             cpu = "qemu64",
             cpuCores = 4,
@@ -166,6 +172,7 @@ object GuestOsProfileManager {
     private data class GuestOsProfile(
         val title: String,
         val description: String,
+        val arch: String,
         val machineType: String,
         val cpu: String,
         val cpuCores: Int = 1,
@@ -186,6 +193,7 @@ object GuestOsProfileManager {
             return buildString {
                 appendLine(description)
                 appendLine()
+                appendLine("Guest architecture: $arch")
                 appendLine("Machine: $machineType")
                 appendLine("CPU: $cpu, cores: $cpuCores")
                 appendLine("Memory: ${memoryMb}MB")
@@ -208,6 +216,7 @@ object GuestOsProfileManager {
         }
 
         fun applyTo(viewListener: ViewListener) {
+            viewListener.onFieldChange(MachineProperty.ARCH, arch)
             viewListener.onFieldChange(MachineProperty.MACHINETYPE, machineType)
             viewListener.onFieldChange(MachineProperty.CPU, cpu)
             viewListener.onFieldChange(MachineProperty.CPUNUM, cpuCores)

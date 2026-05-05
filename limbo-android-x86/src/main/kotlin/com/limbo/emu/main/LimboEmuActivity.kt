@@ -82,9 +82,9 @@ class LimboEmuActivity : LimboActivity() {
 
     override fun loadQEMULib() {
         try {
-            System.loadLibrary("qemu-system-i386")
-        } catch (ex: Error) {
             System.loadLibrary("qemu-system-x86_64")
+        } catch (ex: Error) {
+            System.loadLibrary("qemu-system-i386")
         }
     }
 }
