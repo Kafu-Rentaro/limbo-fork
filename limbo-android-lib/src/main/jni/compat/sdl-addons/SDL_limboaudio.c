@@ -19,12 +19,95 @@ Copyright (C) Max Kastanas 2012
 
 #include <jni.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include <inttypes.h>
 #include <math.h>
 #include <semaphore.h>
+#include <dlfcn.h>
 #include <aaudio/AAudio.h>
 #include "SDL_limboaudio.h"
+
+static void *aaudioLibHandle = NULL;
+static int aaudioSymbolsLoaded = 0;
+
+static aaudio_result_t (*limbo_AAudio_createStreamBuilder)(AAudioStreamBuilder **builder);
+static const char *(*limbo_AAudio_convertResultToText)(aaudio_result_t returnCode);
+static void (*limbo_AAudioStreamBuilder_setSampleRate)(AAudioStreamBuilder *builder, int32_t sampleRate);
+static void (*limbo_AAudioStreamBuilder_setChannelCount)(AAudioStreamBuilder *builder, int32_t channelCount);
+static void (*limbo_AAudioStreamBuilder_setFormat)(AAudioStreamBuilder *builder, aaudio_format_t format);
+static void (*limbo_AAudioStreamBuilder_setPerformanceMode)(
+        AAudioStreamBuilder *builder,
+        aaudio_performance_mode_t performanceMode);
+static void (*limbo_AAudioStreamBuilder_setDataCallback)(
+        AAudioStreamBuilder *builder,
+        AAudioStream_dataCallback callback,
+        void *userData);
+static aaudio_result_t (*limbo_AAudioStreamBuilder_openStream)(
+        AAudioStreamBuilder *builder,
+        AAudioStream **stream);
+static aaudio_result_t (*limbo_AAudioStreamBuilder_delete)(AAudioStreamBuilder *builder);
+static int32_t (*limbo_AAudioStream_getDeviceId)(AAudioStream *stream);
+static aaudio_direction_t (*limbo_AAudioStream_getDirection)(AAudioStream *stream);
+static aaudio_sharing_mode_t (*limbo_AAudioStream_getSharingMode)(AAudioStream *stream);
+static int32_t (*limbo_AAudioStream_getSampleRate)(AAudioStream *stream);
+static int32_t (*limbo_AAudioStream_getChannelCount)(AAudioStream *stream);
+static int32_t (*limbo_AAudioStream_getFramesPerBurst)(AAudioStream *stream);
+static aaudio_format_t (*limbo_AAudioStream_getFormat)(AAudioStream *stream);
+static int32_t (*limbo_AAudioStream_getBufferCapacityInFrames)(AAudioStream *stream);
+static aaudio_result_t (*limbo_AAudioStream_requestStart)(AAudioStream *stream);
+static aaudio_result_t (*limbo_AAudioStream_requestStop)(AAudioStream *stream);
+static aaudio_result_t (*limbo_AAudioStream_close)(AAudioStream *stream);
+static aaudio_result_t (*limbo_AAudioStream_write)(
+        AAudioStream *stream,
+        const void *buffer,
+        int32_t numFrames,
+        int64_t timeoutNanoseconds);
+
+#define LIMBO_LOAD_AAUDIO_SYMBOL(symbol) \
+    do { \
+        limbo_##symbol = dlsym(aaudioLibHandle, #symbol); \
+        if (limbo_##symbol == NULL) { \
+            printf("Unable to load AAudio symbol: %s\n", #symbol); \
+            return 0; \
+        } \
+    } while (0)
+
+static int loadAAudioSymbols(void) {
+    if (aaudioSymbolsLoaded) {
+        return 1;
+    }
+    aaudioLibHandle = dlopen("libaaudio.so", RTLD_NOW | RTLD_LOCAL);
+    if (aaudioLibHandle == NULL) {
+        printf("AAudio is not available: %s\n", dlerror());
+        return 0;
+    }
+
+    LIMBO_LOAD_AAUDIO_SYMBOL(AAudio_createStreamBuilder);
+    LIMBO_LOAD_AAUDIO_SYMBOL(AAudio_convertResultToText);
+    LIMBO_LOAD_AAUDIO_SYMBOL(AAudioStreamBuilder_setSampleRate);
+    LIMBO_LOAD_AAUDIO_SYMBOL(AAudioStreamBuilder_setChannelCount);
+    LIMBO_LOAD_AAUDIO_SYMBOL(AAudioStreamBuilder_setFormat);
+    LIMBO_LOAD_AAUDIO_SYMBOL(AAudioStreamBuilder_setPerformanceMode);
+    LIMBO_LOAD_AAUDIO_SYMBOL(AAudioStreamBuilder_setDataCallback);
+    LIMBO_LOAD_AAUDIO_SYMBOL(AAudioStreamBuilder_openStream);
+    LIMBO_LOAD_AAUDIO_SYMBOL(AAudioStreamBuilder_delete);
+    LIMBO_LOAD_AAUDIO_SYMBOL(AAudioStream_getDeviceId);
+    LIMBO_LOAD_AAUDIO_SYMBOL(AAudioStream_getDirection);
+    LIMBO_LOAD_AAUDIO_SYMBOL(AAudioStream_getSharingMode);
+    LIMBO_LOAD_AAUDIO_SYMBOL(AAudioStream_getSampleRate);
+    LIMBO_LOAD_AAUDIO_SYMBOL(AAudioStream_getChannelCount);
+    LIMBO_LOAD_AAUDIO_SYMBOL(AAudioStream_getFramesPerBurst);
+    LIMBO_LOAD_AAUDIO_SYMBOL(AAudioStream_getFormat);
+    LIMBO_LOAD_AAUDIO_SYMBOL(AAudioStream_getBufferCapacityInFrames);
+    LIMBO_LOAD_AAUDIO_SYMBOL(AAudioStream_requestStart);
+    LIMBO_LOAD_AAUDIO_SYMBOL(AAudioStream_requestStop);
+    LIMBO_LOAD_AAUDIO_SYMBOL(AAudioStream_close);
+    LIMBO_LOAD_AAUDIO_SYMBOL(AAudioStream_write);
+
+    aaudioSymbolsLoaded = 1;
+    return 1;
+}
 
 // currently no need to resample unless we have a sample rate 
 // that aaudio cannot handle, if so we prefer 22050
@@ -50,7 +133,6 @@ int aaudioFrames;
 int aaudioChannels;
 
 // high priority aaudio callback
-short* aaudioBuffer;
 int aaudioBufferStart = 0;
 int aaudioBufferEnd = 0;
 int aaudioBufferSize = 0;
@@ -61,6 +143,7 @@ short * aaudioBuffer = NULL;
 
 int aaudioResampleStep = 0;
 int aaudioResampleFrames = 0;
+int aaudioMutexInitialized = 0;
 
 sem_t mutex;
 
@@ -98,50 +181,57 @@ aaudio_data_callback_result_t aaudio_callback(
 }
      
 void createAAudioDevice(int sampleRate, int channelCount, int desiredBufferFrames){	
+    if(!loadAAudioSymbols()) {
+        return;
+    }
     // Does this prevent the vm from crashing with a stackoverflowerror?
 	sleep(1);
-	AAUDIO_API aaudio_result_t res = AAudio_createStreamBuilder(&builder);
+	aaudio_result_t res = limbo_AAudio_createStreamBuilder(&builder);
 	if(res != AAUDIO_OK){
-		printf("Error while creating builder: %s\n", AAudio_convertResultToText(res));	
+		printf("Error while creating builder: %s\n", limbo_AAudio_convertResultToText(res));
+        destroyAaudioDevice();
+        return;
 	}
     if(enableAaudioResample)
         printf("requested resampling rate: %f\n", aaudioResampleRate);
     else
         printf("requested sampling rate: %d\n", sampleRate);
-	AAudioStreamBuilder_setSampleRate(builder, enableAaudioResample?aaudioResampleRate:sampleRate);
-	AAudioStreamBuilder_setChannelCount(builder, channelCount);
-	AAudioStreamBuilder_setFormat(builder, AAUDIO_FORMAT_PCM_I16);
+	limbo_AAudioStreamBuilder_setSampleRate(builder, enableAaudioResample?aaudioResampleRate:sampleRate);
+	limbo_AAudioStreamBuilder_setChannelCount(builder, channelCount);
+	limbo_AAudioStreamBuilder_setFormat(builder, AAUDIO_FORMAT_PCM_I16);
 	//AAudioStreamBuilder_setBufferCapacityInFrames(builder, desiredBufferFrames);
-	AAudioStreamBuilder_setPerformanceMode(builder,AAUDIO_PERFORMANCE_MODE_LOW_LATENCY);
+	limbo_AAudioStreamBuilder_setPerformanceMode(builder,AAUDIO_PERFORMANCE_MODE_LOW_LATENCY);
 	if(enableAaudioHighPriority)
-		AAudioStreamBuilder_setDataCallback(builder, aaudio_callback, aaudioBuffer);
+		limbo_AAudioStreamBuilder_setDataCallback(builder, aaudio_callback, aaudioBuffer);
 
-	res = AAudioStreamBuilder_openStream(builder, &stream);	
+	res = limbo_AAudioStreamBuilder_openStream(builder, &stream);
 	if(res != AAUDIO_OK){
-		printf("Error while opening stream: %s\n", AAudio_convertResultToText(res));	
+		printf("Error while opening stream: %s\n", limbo_AAudio_convertResultToText(res));
+        destroyAaudioDevice();
+        return;
 	}
 	
-	printf("Stream deviceId: %d\n", AAudioStream_getDeviceId(stream));
-	printf("Stream direction: %d\n", AAudioStream_getDirection(stream));
+	printf("Stream deviceId: %d\n", limbo_AAudioStream_getDeviceId(stream));
+	printf("Stream direction: %d\n", limbo_AAudioStream_getDirection(stream));
 	
-	AAUDIO_API aaudio_sharing_mode_t sharingMode = AAudioStream_getSharingMode(stream);
+	aaudio_sharing_mode_t sharingMode = limbo_AAudioStream_getSharingMode(stream);
 	if(sharingMode != AAUDIO_SHARING_MODE_SHARED)	
 		printf("Stream sharingMode invalid: %d\n", sharingMode);
 		
-    aaudioResampleRate = AAudioStream_getSampleRate(stream);
+    aaudioResampleRate = limbo_AAudioStream_getSampleRate(stream);
 	printf("Stream sampleRate: %f\n", aaudioResampleRate);
-	aaudioChannels = AAudioStream_getChannelCount(stream);
+	aaudioChannels = limbo_AAudioStream_getChannelCount(stream);
 	printf("Stream channelCount: %d\n", aaudioChannels);
 
-	aaudioBurstFrames = AAudioStream_getFramesPerBurst(stream);
+	aaudioBurstFrames = limbo_AAudioStream_getFramesPerBurst(stream);
 	printf("Got optimal numFrames: %d\n", aaudioBurstFrames);
 	
-	AAUDIO_API aaudio_format_t dataFormat = AAudioStream_getFormat(stream);
+	aaudio_format_t dataFormat = limbo_AAudioStream_getFormat(stream);
 	if (dataFormat != AAUDIO_FORMAT_PCM_I16) {
     	printf("Stream format invalid: %d\n", dataFormat);	
 	}
 	
-	aaudioCapacityFrames = AAudioStream_getBufferCapacityInFrames(stream);
+	aaudioCapacityFrames = limbo_AAudioStream_getBufferCapacityInFrames(stream);
 	printf("Stream frames capacity: %d\n", aaudioCapacityFrames);
 	
     //TODO: we could use the optimal number of frames
@@ -149,7 +239,9 @@ void createAAudioDevice(int sampleRate, int channelCount, int desiredBufferFrame
 	// aaudioFrames = aaudioBurstFrames;
 	aaudioFrames = desiredBufferFrames;
 	
-    sem_init(&mutex, 0, 1);
+    if(sem_init(&mutex, 0, 1) == 0) {
+        aaudioMutexInitialized = 1;
+    }
     printf("Samples: %d\n", aaudioFrames);
     printf("Channels: %d\n", aaudioChannels);
     
@@ -179,7 +271,7 @@ void createAAudioDevice(int sampleRate, int channelCount, int desiredBufferFrame
     printf("aaudio final frames: %d\n", aaudioFrames);
     printf("aaudio final buffer size: %d\n", aaudioBufferSize);
         
-	res = AAudioStream_requestStart(stream);
+	res = limbo_AAudioStream_requestStart(stream);
 	if(res != AAUDIO_OK){
 		printf("Error while starting stream: %d\n", res);	
 	}
@@ -187,22 +279,46 @@ void createAAudioDevice(int sampleRate, int channelCount, int desiredBufferFrame
 }
 
 void destroyAaudioDevice() {
-    sem_destroy(&mutex);
+    if(stream != NULL) {
+        if(aaudioSymbolsLoaded) {
+            limbo_AAudioStream_requestStop(stream);
+            limbo_AAudioStream_close(stream);
+        }
+        stream = NULL;
+    }
+    if(builder != NULL) {
+        if(aaudioSymbolsLoaded) {
+            limbo_AAudioStreamBuilder_delete(builder);
+        }
+        builder = NULL;
+    }
+    free(aaudioMidBuffer);
+    aaudioMidBuffer = NULL;
+    free(aaudioBuffer);
+    aaudioBuffer = NULL;
+    aaudioBufferStart = 0;
+    aaudioBufferEnd = 0;
+    aaudioBufferSize = 0;
+    aaudioMidBufferSize = 0;
+    if(aaudioMutexInitialized) {
+        sem_destroy(&mutex);
+        aaudioMutexInitialized = 0;
+    }
 }
 
 int isAaudioBufferEmpty() {
     for(int i=0; i<aaudioMidBufferSize; i++){
         if(aaudioMidBuffer[i] != 0)
-            return false;
+            return 0;
     }
-    return true;
+    return 1;
 }
 
 int batchCount = 0;
 void resampleAaudio() {
     int batch = batchCount++;
     //printf("resampling batch: %d, step: %d, bufferSize: %d\n", batch, aaudioResampleStep, aaudioBufferSize);
-    memset(aaudioBuffer, 0, aaudioBufferSize);
+    memset(aaudioBuffer, 0, aaudioBufferSize * sizeof(short));
     int sum = 0; 
     int oldFrame = 0;
     int sampleCount = aaudioDropFrames?1:aaudioResampleStep;
@@ -248,12 +364,12 @@ void writeAaudioStream() {
     // in sdl or qemu.
     if(enableAaudioResample) {
         resampleAaudio();
-        res = AAudioStream_write(stream, (short*) aaudioBuffer, aaudioFrames, 1);
+        res = limbo_AAudioStream_write(stream, (short*) aaudioBuffer, aaudioFrames, 1);
     } else {
-        res = AAudioStream_write(stream, (short*) aaudioMidBuffer, aaudioFrames, 1);
+        res = limbo_AAudioStream_write(stream, (short*) aaudioMidBuffer, aaudioFrames, 1);
     }
     if(res < 0) {
-        printf("Error writting: %s\n", AAudio_convertResultToText(res));
+        printf("Error writting: %s\n", limbo_AAudio_convertResultToText(res));
     } else {
         // printf("Frames written: %d\n", res);
     }

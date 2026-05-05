@@ -82,18 +82,36 @@ class LimboApplication : Application() {
 
         @JvmStatic
         fun setupEnv(context: Context) {
-            try {
-                val packageName = context.javaClass.`package`?.name ?: context.packageName
-                val packageInfo = context.packageManager.getPackageInfo(
-                    packageName,
-                    PackageManager.GET_META_DATA,
-                )
-                limboVersion = getPackageVersionCode(packageInfo)
-                limboVersionString = packageInfo.versionName
-                Log.d(TAG, "Limbo Version: $limboVersion")
-                Log.d(TAG, "Limbo Version Code: $limboVersionString")
+            val appContext = context.applicationContext ?: context
+            var lastPackageError: Exception? = null
+            val packageNames = linkedSetOf(appContext.packageName, context.packageName)
+            appContext.applicationInfo?.packageName?.let { packageNames.add(it) }
 
-                qemuVersionString = FileUtils.LoadFile(context, "QEMU_VERSION", false)
+            for (packageName in packageNames) {
+                try {
+                    val packageInfo = appContext.packageManager.getPackageInfo(
+                        packageName,
+                        PackageManager.GET_META_DATA,
+                    )
+                    limboVersion = getPackageVersionCode(packageInfo)
+                    limboVersionString = packageInfo.versionName
+                    Log.d(TAG, "Limbo Version: $limboVersion")
+                    Log.d(TAG, "Limbo Version Code: $limboVersionString")
+                    lastPackageError = null
+                    break
+                } catch (e: PackageManager.NameNotFoundException) {
+                    lastPackageError = e
+                }
+            }
+
+            if (lastPackageError != null) {
+                Log.w(TAG, "Could not resolve app package version; using fallback", lastPackageError)
+                limboVersion = 1
+                limboVersionString = "0.0.1"
+            }
+
+            try {
+                qemuVersionString = FileUtils.LoadFile(appContext, "QEMU_VERSION", false)
                 val qemuVersionParts = requireNotNull(qemuVersionString).trim().split(".")
                 qemuVersion = qemuVersionParts[0].toInt() * 10000 +
                     qemuVersionParts[1].toInt() * 100 +
@@ -103,7 +121,7 @@ class LimboApplication : Application() {
                 HostCapabilities.logHostCapabilities()
             } catch (e: Exception) {
                 e.printStackTrace()
-                ToastUtils.toastShort(context, "Could not load version information: $e")
+                ToastUtils.toastShort(context, "Could not load QEMU version information: $e")
             }
         }
 
@@ -111,7 +129,7 @@ class LimboApplication : Application() {
         fun getUserId(context: Context): String {
             var userId = "None"
             try {
-                val packageName = context.javaClass.`package`?.name ?: context.packageName
+                val packageName = context.packageName
                 val appInfo = context.packageManager.getApplicationInfo(
                     packageName,
                     PackageManager.GET_META_DATA,

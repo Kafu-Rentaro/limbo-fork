@@ -42,31 +42,29 @@ object MachineImporter {
         try {
             Log.d(TAG, "Import file: $importFilePath")
             val stream = FileUtils.getStreamFromFilePath(importFilePath)
-            if (stream != null) {
-                stream.bufferedReader().use { reader ->
-                    val attrs = mutableMapOf<Int, String>()
-                    val headerLine = reader.readLine() ?: return machines
-                    headerLine.split(",").forEachIndexed { index, header ->
-                        attrs[index] = header.replace("\"", "")
-                    }
+            stream.bufferedReader().use { reader ->
+                val attrs = mutableMapOf<Int, String>()
+                val headerLine = reader.readLine() ?: return machines
+                headerLine.split(",").forEachIndexed { index, header ->
+                    attrs[index] = header.replace("\"", "")
+                }
 
-                    while (true) {
-                        val line = reader.readLine() ?: break
-                        val machineAttr = csvSplitPattern.split(line, -1)
-                        if (machineAttr.isEmpty()) {
+                while (true) {
+                    val line = reader.readLine() ?: break
+                    val machineAttr = csvSplitPattern.split(line, -1)
+                    if (machineAttr.isEmpty()) {
+                        continue
+                    }
+                    val machine = Machine(machineAttr[0], false)
+                    for (index in machineAttr.indices) {
+                        val value = machineAttr[index]
+                        if (value == "\"null\"") {
                             continue
                         }
-                        val machine = Machine(machineAttr[0], false)
-                        for (index in machineAttr.indices) {
-                            val value = machineAttr[index]
-                            if (value == "\"null\"") {
-                                continue
-                            }
-                            applyMachineAttribute(machine, attrs[index], value)
-                        }
-                        Log.d(TAG, "Adding Machine: ${machine.getName()}")
-                        machines.add(machine)
+                        applyMachineAttribute(machine, attrs[index], value)
                     }
+                    Log.d(TAG, "Adding Machine: ${machine.getName()}")
+                    machines.add(machine)
                 }
             }
         } catch (ex: Exception) {

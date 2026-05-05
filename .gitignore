@@ -7,9 +7,11 @@
 /build
 /captures
 .externalNativeBuild
+**/.cxx/
 .idea
 qemunew
 build
+config-temp/
 # Built application files
 *.apk
 *.ap_

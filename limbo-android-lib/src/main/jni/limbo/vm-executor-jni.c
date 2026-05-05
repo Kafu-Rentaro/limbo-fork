@@ -24,11 +24,13 @@
 #include <malloc.h>
 #include <signal.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include <dlfcn.h>
 #include <unwind.h>
 #include <dlfcn.h>
 #include "vm-executor-jni.h"
+#include "limbo_logutils.h"
 #include "limbo_compat.h"
 
 #define MSG_BUFSIZE 1024
@@ -316,4 +318,3 @@ JNIEXPORT jstring JNICALL Java_com_max2idea_android_limbo_jni_VMExecutor_stop(
 }
 
 // JNI End
-

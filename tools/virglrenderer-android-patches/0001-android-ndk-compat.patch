@@ -1,0 +1,55 @@
+diff --git a/src/mesa/util/os_misc.c b/src/mesa/util/os_misc.c
+--- a/src/mesa/util/os_misc.c
++++ b/src/mesa/util/os_misc.c
+@@ -55,8 +55,27 @@
+ #if DETECT_OS_ANDROID
+ #  define LOG_TAG "MESA"
+ #  include <unistd.h>
+-#  include <log/log.h>
+-#  include <cutils/properties.h>
++#  include <android/log.h>
++#  define LOG_PRI(priority, tag, ...) __android_log_print(priority, tag, __VA_ARGS__)
++#  ifndef PROPERTY_VALUE_MAX
++#    define PROPERTY_VALUE_MAX 92
++#  endif
++#  ifndef PROPERTY_KEY_MAX
++#    define PROPERTY_KEY_MAX 32
++#  endif
++static inline int property_get(const char *key, char *value,
++                               const char *default_value)
++{
++   (void) key;
++   if (default_value) {
++      size_t len = strlcpy(value, default_value, PROPERTY_VALUE_MAX);
++      return len < PROPERTY_VALUE_MAX ? (int)len : PROPERTY_VALUE_MAX - 1;
++   }
++   if (value) {
++      value[0] = '\0';
++   }
++   return 0;
++}
+ #elif DETECT_OS_LINUX || DETECT_OS_CYGWIN || DETECT_OS_SOLARIS || DETECT_OS_HURD
+ #  include <unistd.h>
+ #elif DETECT_OS_OPENBSD || DETECT_OS_FREEBSD
+diff --git a/src/mesa/util/u_thread.h b/src/mesa/util/u_thread.h
+--- a/src/mesa/util/u_thread.h
++++ b/src/mesa/util/u_thread.h
+@@ -249,7 +249,8 @@
+ static inline int64_t
+ util_thread_get_time_nano(UNUSED thrd_t thread)
+ {
+-#if defined(HAVE_PTHREAD) && !defined(__APPLE__) && !defined(__HAIKU__)
++#if defined(HAVE_PTHREAD) && !defined(__APPLE__) && !defined(__HAIKU__) && \
++   !defined(__ANDROID__)
+    struct timespec ts;
+    clockid_t cid;
+
+@@ -289,6 +290,7 @@
+  * util_barrier
+  */
+
+-#if defined(HAVE_PTHREAD) && !defined(__APPLE__) && !defined(__HAIKU__)
++#if defined(HAVE_PTHREAD) && !defined(__APPLE__) && !defined(__HAIKU__) && \
++   !defined(__ANDROID__)
+
+ typedef pthread_barrier_t util_barrier;

@@ -268,6 +268,7 @@
     <string name="MachineResoultionWarning">Machine Resolution is too high for Desktop Mode. Scaling will be used and Mouse Alignment will not be accurate. Reduce display resolution within the Guest OS for better experience.\n\n</string>
     <string name="virgl_requires_sdl">3D acceleration uses SDL display. Limbo will switch to SDL when available.</string>
     <string name="virgl_requires_sdl_runtime">3D acceleration requires SDL display. Switch UI to SDL or choose a non-3D GPU.</string>
+    <string name="missing_native_libraries_runtime">Missing native libraries: %1$s. Install a QEMU 11 / VirGL build for this ABI.</string>
     <string name="CouldNotCreateBaseDir">Could not create base directory</string>
     <string name="CouldNotCreateMachineDir">Could not create machine directory</string>
     <string name="CouldNotCreateDirForImage">Could not create directory for image</string>

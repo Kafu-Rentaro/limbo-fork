@@ -17,14 +17,16 @@ Copyright (C) Max Kastanas 2012
  *
  */
 #include <stdbool.h>
-#include "src/SDL_internal.h"
+#include <SDL.h>
 #include "SDL_limboscreen.h"
-#include "core/android/SDL_android.h"
-
-extern SDL_Window *Android_Window;
 
 JNIEXPORT void JNICALL Java_com_max2idea_android_limbo_jni_VMExecutor_nativeFullscreen(
         JNIEnv* env, jobject thiz) {
-    SDL_SetWindowFullscreen(Android_Window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+    SDL_Window *window = SDL_GetKeyboardFocus();
+    if (!window) {
+        window = SDL_GetMouseFocus();
+    }
+    if (window) {
+        SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+    }
 }
-

@@ -1,4 +1,4 @@
-package com.limbo.emu.main.sparc
+package jp.oso.limbofork.fuwa.sparc
 
 import android.os.Bundle
 import com.max2idea.android.limbo.links.LinksManager

@@ -63,6 +63,13 @@ https://github.com/limboemu/limbo
     ./tools/configure-qemu-11-android.sh --host arm64-v8a --guest x86_64-softmmu
     # ARMv9-tuned host build plus virgl/OpenGL flags:
     ./tools/configure-qemu-11-android.sh --host arm64-v8a --guest x86_64-softmmu --armv9 --virgl
+    # Build both Windows-capable x86 guests and package the ARMv8 baseline APK:
+    ./tools/build-qemu-11-android-deps.sh --host arm64-v8a --virgl
+    ./tools/configure-qemu-11-android.sh --host arm64-v8a --guest i386-softmmu --virgl --build
+    ./tools/configure-qemu-11-android.sh --host arm64-v8a --guest x86_64-softmmu --virgl --build
+    ./gradlew :limbo-android-x86:assembleDebug
+    # To package an ARMv9-tuned build, build deps/QEMU with --armv9 and add:
+    ./gradlew -Pqemu11AndroidProfile=armv9-a :limbo-android-x86:assembleDebug
     # QEMU 11 dropped 32-bit host support. For ARM hosts, use arm64-v8a for
     # ARMv8 and add --armv9 only for ARMv9-tuned native builds.
     # UI profiles prefer QEMU's current virtio-gpu GL device spelling
@@ -298,12 +305,12 @@ https://github.com/limboemu/limbo
         # for x86 guest and ARM64 phone:
         export BUILD_HOST=arm64-v8a
         export BUILD_GUEST=x86_64-softmmu
-        make ndk-gdb PKG_NAME=com.limbo.emu.main
+        make ndk-gdb PKG_NAME=jp.oso.limbofork.fuwa
 
         # for other guests use respectively:
-        make ndk-gdb PKG_NAME=com.limbo.emu.main.arm
-		make ndk-gdb PKG_NAME=com.limbo.emu.main.sparc
-		make ndk-gdb PKG_NAME=com.limbo.emu.main.ppc
+        make ndk-gdb PKG_NAME=jp.oso.limbofork.fuwa.arm
+		make ndk-gdb PKG_NAME=jp.oso.limbofork.fuwa.sparc
+		make ndk-gdb PKG_NAME=jp.oso.limbofork.fuwa.ppc
 
         Note: you might want to disable signal handling in gdb:
         handle all nostop noprint

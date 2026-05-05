@@ -1,13 +1,67 @@
 apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 
+def qemu11AndroidAbi = 'arm64-v8a'
+def qemu11AndroidProfileAliases = [
+    'armv8'  : 'armv8-a',
+    'armv8-a': 'armv8-a',
+    'armv9'  : 'armv9-a',
+    'armv9-a': 'armv9-a',
+]
+def requestedQemu11AndroidProfile = (findProperty('qemu11AndroidProfile') ?: 'armv8-a').toString()
+def qemu11AndroidProfile = qemu11AndroidProfileAliases[requestedQemu11AndroidProfile]
+if (qemu11AndroidProfile == null) {
+    throw new GradleException(
+        "Unsupported qemu11AndroidProfile '${requestedQemu11AndroidProfile}'. Use armv8-a or armv9-a."
+    )
+}
+def qemu11GeneratedJniLibsDir = file("$buildDir/generated/qemu11/${qemu11AndroidAbi}-${qemu11AndroidProfile}/jniLibs")
+def qemu11GuestTargets = [
+    'i386-softmmu'  : 'libqemu-system-i386.so',
+    'x86_64-softmmu': 'libqemu-system-x86_64.so',
+]
+def qemu11DependencyLibraries = [
+    'libSDL2.so',
+    'libepoxy.so',
+    'libffi.so',
+    'libgio-2.0.so',
+    'libglib-2.0.so',
+    'libgobject-2.0.so',
+    'libiconv.so',
+    'libpcre2-8.so',
+    'libpcre2-posix.so',
+    'libpixman-1.so',
+    'libvirglrenderer.so',
+]
+def qemu11BuildRootDir = file("${rootProject.projectDir}/build/qemu-android")
+def qemu11DepsLibDir = file("${projectDir}/src/main/jni/deps/${qemu11AndroidAbi}-${qemu11AndroidProfile}/lib")
+def qemu11BuildDirForTarget = { target ->
+    file("${qemu11BuildRootDir}/${qemu11AndroidAbi}-${qemu11AndroidProfile}-${target}")
+}
+def qemu11RequiredSharedLibraries = {
+    def files = qemu11GuestTargets.collect { target, libraryName ->
+        file("${qemu11BuildDirForTarget(target)}/${libraryName}")
+    }
+    files.addAll(qemu11DependencyLibraries.collect { file("${qemu11DepsLibDir}/${it}") })
+    files
+}
+
 android {
     namespace = 'com.limbo.emu.lib'
     compileSdk = 36
+    ndkVersion = '30.0.14904198'
 
     defaultConfig{
         minSdk = 23
         targetSdk = 36
+        ndk {
+            abiFilters qemu11AndroidAbi
+        }
+        externalNativeBuild {
+            cmake {
+                arguments "-DQEMU11_DEPS_DIR=${projectDir}/src/main/jni/deps/${qemu11AndroidAbi}-${qemu11AndroidProfile}"
+            }
+        }
     }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
@@ -23,11 +77,54 @@ android {
         }
     }
 
-//    externalNativeBuild {
-//        ndkBuild {
-//            path 'src/main/jni/Android.mk'
-//        }
-//    }
+    externalNativeBuild {
+        cmake {
+            path 'src/main/jni/CMakeLists.txt'
+        }
+    }
+
+    sourceSets {
+        main {
+            jniLibs.srcDir qemu11GeneratedJniLibsDir
+        }
+    }
+}
+
+tasks.register('syncQemu11Arm64V8aJniLibs', Sync) {
+    group = 'build'
+    description = "Copies locally built QEMU 11 ${qemu11AndroidAbi}/${qemu11AndroidProfile} shared libraries into generated jniLibs."
+    dependsOn 'verifyQemu11Arm64V8aJniLibs'
+    into file("${qemu11GeneratedJniLibsDir}/${qemu11AndroidAbi}")
+    qemu11GuestTargets.each { target, libraryName ->
+        from(qemu11BuildDirForTarget(target)) {
+            include libraryName
+        }
+    }
+    from(qemu11DepsLibDir) {
+        include '*.so'
+    }
+}
+
+tasks.register('verifyQemu11Arm64V8aJniLibs') {
+    group = 'verification'
+    description = "Verifies QEMU 11 ${qemu11AndroidAbi}/${qemu11AndroidProfile} shared libraries are available for packaging."
+    doLast {
+        def missing = qemu11RequiredSharedLibraries().findAll { !it.exists() }
+        if (!missing.empty) {
+            def missingList = missing.collect { " - ${rootProject.projectDir.toPath().relativize(it.toPath())}" }.join('\n')
+            throw new GradleException(
+                "Missing QEMU 11 Android shared libraries for ${qemu11AndroidAbi}/${qemu11AndroidProfile}:\n" +
+                    "${missingList}\n" +
+                    "Build them with tools/build-qemu-11-android-deps.sh and tools/configure-qemu-11-android.sh first."
+            )
+        }
+    }
+}
+
+tasks.configureEach { task ->
+    if (task.name == 'preBuild' || (task.name.startsWith('merge') && task.name.endsWith('JniLibFolders'))) {
+        task.dependsOn tasks.named('syncQemu11Arm64V8aJniLibs')
+    }
 }
 
 dependencies {

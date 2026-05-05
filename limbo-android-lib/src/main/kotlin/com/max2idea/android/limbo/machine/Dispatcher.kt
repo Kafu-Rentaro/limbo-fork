@@ -46,6 +46,7 @@ object Dispatcher : ViewListener {
             MachineProperty.NON_REMOVABLE_DRIVE,
             MachineProperty.REMOVABLE_DRIVE -> setDrive(value)
             MachineProperty.MEDIA_INTERFACE -> setDriveMediaInterface(value)
+            MachineProperty.ARCH -> machine.setArch(convertString(property, value))
             MachineProperty.SOUNDCARD -> machine.setSoundCard(convertString(property, value))
             MachineProperty.CPU -> machine.setCpu(convertString(property, value))
             MachineProperty.MEMORY -> machine.setMemory(convertInt(property, value))
@@ -214,7 +215,7 @@ object Dispatcher : ViewListener {
             MachineAction.SEND_MOUSE_EVENT -> sendMouseEvent(value)
             MachineAction.INSERT_FAV -> addDriveToList(value)
             MachineAction.UPDATE_NOTIFICATION -> {
-                val name = MachineController.getInstance().getMachine().getName()
+                val name = MachineController.getInstance().machine?.getName() ?: return
                 MachineService.getService()?.updateServiceNotification("$name: ${value as String}")
             }
             MachineAction.DISPLAY_CHANGED -> displayChanged(value)
@@ -266,7 +267,7 @@ object Dispatcher : ViewListener {
         )
     }
 
-    private fun getMachine(): Machine? = MachineController.getInstance().getMachine()
+    private fun getMachine(): Machine? = MachineController.getInstance().machine
 
     private fun convertString(property: MachineProperty, value: Any?): String =
         value as? String ?: throw RuntimeException("Unknown property value: $value for: $property")

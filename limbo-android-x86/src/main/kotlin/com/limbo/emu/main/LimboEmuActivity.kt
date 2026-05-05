@@ -1,4 +1,4 @@
-package com.limbo.emu.main
+package jp.oso.limbofork.fuwa
 
 import android.os.Bundle
 import com.max2idea.android.limbo.links.LinksManager
@@ -82,9 +82,9 @@ class LimboEmuActivity : LimboActivity() {
 
     override fun loadQEMULib() {
         try {
-            System.loadLibrary("qemu-system-i386")
-        } catch (ex: Error) {
             System.loadLibrary("qemu-system-x86_64")
+        } catch (ex: Error) {
+            System.loadLibrary("qemu-system-i386")
         }
     }
 }
